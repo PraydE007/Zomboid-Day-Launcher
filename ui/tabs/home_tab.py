@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import (
     QPixmap, QPainter, QLinearGradient, QColor, QBrush,
-    QPainterPath
+    QPainterPath, QFont
 )
 
 from core.version_checker import VersionChecker
@@ -111,6 +111,81 @@ class HeroBannerWidget(QWidget):
         painter.fillRect(rect, QBrush(bottom_grad))
 
 
+class StyledTitleWidget(QWidget):
+    """
+    Renders the game title and subtitle with 3D drop shadow and dual-color typography:
+    'ZOMBOID DAY' in toxic green (#22c55e) and 'PROJECT' in crisp white (#ffffff).
+    Rendered with native QPainter so it is completely immune to modal dialog focus or mouse clicks.
+    """
+    def __init__(self, subtitle_text: str = "", parent=None):
+        super().__init__(parent)
+        self.subtitle_text = subtitle_text
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.setFixedHeight(88)
+
+    def set_subtitle(self, text: str):
+        self.subtitle_text = text
+        self.update()
+
+    def setText(self, text: str):
+        self.set_subtitle(text)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+
+        title_font = QFont("Freckle Face", 48)
+        title_font.setWeight(QFont.Weight.Black)
+        painter.setFont(title_font)
+
+        fm = painter.fontMetrics()
+        part1 = "ZOMBOID DAY "
+        part2 = "PROJECT"
+        w1 = fm.horizontalAdvance(part1)
+
+        base_y = fm.ascent() + 1
+
+        # Deep 3D Drop Shadows
+        shadow_layers = [
+            (0, 4, QColor(0, 0, 0, 160)),
+            (1, 3, QColor(0, 0, 0, 200)),
+            (0, 2, QColor(0, 0, 0, 240)),
+            (0, 1, QColor(0, 0, 0, 255)),
+        ]
+        full_text = part1 + part2
+        for dx, dy, col in shadow_layers:
+            painter.setPen(col)
+            painter.drawText(dx, base_y + dy, full_text)
+
+        # Part 1: Toxic Green (#22c55e)
+        painter.setPen(QColor("#22c55e"))
+        painter.drawText(0, base_y, part1)
+
+        # Part 2: Pure Crisp White (#ffffff)
+        painter.setPen(QColor("#ffffff"))
+        painter.drawText(w1, base_y, part2)
+
+        # 2. Subtitle Tagline
+        if self.subtitle_text:
+            sub_font = QFont("Segoe UI", 10)
+            sub_font.setWeight(QFont.Weight.Bold)
+            sub_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.5)
+            painter.setFont(sub_font)
+            sub_fm = painter.fontMetrics()
+            sub_y = base_y + sub_fm.height() + 8
+
+            # Subtitle Shadow
+            painter.setPen(QColor(0, 0, 0, 220))
+            painter.drawText(1, sub_y + 1, self.subtitle_text)
+
+            # Subtitle Text
+            painter.setPen(QColor("#d4d4d4"))
+            painter.drawText(0, sub_y, self.subtitle_text)
+
+
 class HomeTab(QWidget):
     sig_install_clicked = pyqtSignal()
     sig_start_clicked = pyqtSignal(bool)   # True = debug
@@ -143,40 +218,12 @@ class HomeTab(QWidget):
         # ==============================================================
         # 1. TOP-ANCHORED SECTION: Dynamic Styled Title & Diagnostics
         # ==============================================================
-        self.lbl_title = QLabel("ZOMBOID DAY PROJECT", self.hero)
-        self.lbl_title.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        self.lbl_title.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
-        self.lbl_title.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.lbl_title.setStyleSheet("""
-            color: #22c55e;
-            font-family: 'Freckle Face', sans-serif;
-            font-size: 50px;
-            font-weight: 900;
-            background: transparent;
-            padding: 0;
-            margin: 0;
-        """)
+        lang = self.config.language
+        self.lbl_title = StyledTitleWidget(t("subtitle", lang), self.hero)
+        self.lbl_subtitle = self.lbl_title
         overlay.addWidget(self.lbl_title)
 
-        overlay.addSpacing(4)
-
-        # Subtitle / Tagline
-        lang = self.config.language
-        self.lbl_subtitle = QLabel(t("subtitle", lang), self.hero)
-        self.lbl_subtitle.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        self.lbl_subtitle.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
-        self.lbl_subtitle.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.lbl_subtitle.setStyleSheet("""
-            color: #d4d4d4;
-            font-family: 'Segoe UI', -apple-system, sans-serif;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            background: transparent;
-        """)
-        overlay.addWidget(self.lbl_subtitle)
-
-        overlay.addSpacing(10)
+        overlay.addSpacing(6)
 
         # Warning banner if launcher is not lying next to ProjectZomboid64.exe
         self.banner_loc = QLabel(self.hero)
