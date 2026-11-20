@@ -1,5 +1,5 @@
 """
-Settings Tab — Clean sectioned layout, no emoji, minimal chrome.
+Settings Tab — Clean sectioned layout in neutral dark tones.
 """
 from pathlib import Path
 from PyQt6.QtWidgets import (
@@ -15,12 +15,12 @@ from ui.dialogs.repo_dialog import RepoEditDialog
 
 
 class _SectionHeader(QLabel):
-    """Tiny uppercase section label."""
+    """Clean uppercase section label."""
     def __init__(self, text: str, parent=None):
         super().__init__(text.upper(), parent)
         self.setStyleSheet(
-            "color:#64748b; font-size:11px; font-weight:700; letter-spacing:1px;"
-            "padding:0; margin:0; background:transparent;"
+            "color: #737373; font-size: 11px; font-weight: 700; letter-spacing: 1px;"
+            "padding: 0; margin: 0; background: transparent;"
         )
 
 
@@ -42,18 +42,18 @@ class SettingsTab(QWidget):
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet("QScrollArea{background:transparent; border:none;}")
+        scroll.setStyleSheet("QScrollArea{background: transparent; border: none;}")
 
         content = QWidget()
         main = QVBoxLayout(content)
-        main.setContentsMargins(24, 18, 24, 24)
-        main.setSpacing(20)
+        main.setContentsMargins(24, 20, 24, 24)
+        main.setSpacing(18)
 
         # ============================================================ Paths
         card_paths = QFrame(content)
         card_paths.setProperty("class", "GlassCard")
         lp = QVBoxLayout(card_paths)
-        lp.setContentsMargins(16, 14, 16, 14)
+        lp.setContentsMargins(18, 16, 18, 16)
         lp.setSpacing(10)
 
         lp.addWidget(_SectionHeader("Шляхи", card_paths))
@@ -102,7 +102,7 @@ class SettingsTab(QWidget):
         card_repos = QFrame(content)
         card_repos.setProperty("class", "GlassCard")
         lr = QVBoxLayout(card_repos)
-        lr.setContentsMargins(16, 14, 16, 14)
+        lr.setContentsMargins(18, 16, 18, 16)
         lr.setSpacing(10)
 
         lr.addWidget(_SectionHeader("Репозиторії", card_repos))
@@ -151,7 +151,7 @@ class SettingsTab(QWidget):
         card_launch = QFrame(content)
         card_launch.setProperty("class", "GlassCard")
         ll = QVBoxLayout(card_launch)
-        ll.setContentsMargins(16, 14, 16, 14)
+        ll.setContentsMargins(18, 16, 18, 16)
         ll.setSpacing(10)
 
         ll.addWidget(_SectionHeader("Запуск", card_launch))
@@ -183,7 +183,7 @@ class SettingsTab(QWidget):
         row_save.addStretch()
         self.btn_save = QPushButton("Зберегти", content)
         self.btn_save.setProperty("class", "PrimaryButton")
-        self.btn_save.setMinimumHeight(40)
+        self.btn_save.setMinimumHeight(42)
         self.btn_save.setMinimumWidth(160)
         self.btn_save.clicked.connect(self._save_settings)
         row_save.addWidget(self.btn_save)
@@ -194,7 +194,6 @@ class SettingsTab(QWidget):
         scroll.setWidget(content)
         outer.addWidget(scroll)
 
-    # ------------------------------------------------------------------ Data
     def _load_settings(self):
         self.edit_game_dir.setText(self.config.game_dir)
         self.edit_user_dir.setText(self.config.user_zomboid_dir)
@@ -244,7 +243,6 @@ class SettingsTab(QWidget):
             loc = r.get("local_path") or r.get("git_url") or ""
             self.table_repos.setItem(i, 4, QTableWidgetItem(loc))
 
-    # ------------------------------------------------------------------ Repos
     def _toggle_repo(self, index, state):
         if 0 <= index < len(self.repos_cache):
             self.repos_cache[index]["enabled"] = (state == 2 or state == Qt.CheckState.Checked.value)
@@ -291,7 +289,6 @@ class SettingsTab(QWidget):
                 self.repos_cache.pop(row)
                 self._refresh_repos_table()
 
-    # ------------------------------------------------------------------ Browse
     def _browse_game_dir(self):
         f = QFileDialog.getExistingDirectory(self, "Папка Project Zomboid", self.edit_game_dir.text())
         if f:
@@ -321,7 +318,6 @@ class SettingsTab(QWidget):
         self.edit_hero.setText(d)
         self.sig_hero_image_changed.emit(d)
 
-    # ------------------------------------------------------------------ Save
     def _save_settings(self):
         self.config.set("game_dir", self.edit_game_dir.text().strip())
         self.config.set("user_zomboid_dir", self.edit_user_dir.text().strip())

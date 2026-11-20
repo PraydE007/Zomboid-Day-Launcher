@@ -1,11 +1,11 @@
 """
-Console Tab — Clean terminal view with minimal toolbar.
+Console Tab — Clean terminal view with neutral dark styling and responsive prompt.
 """
 import time
 from pathlib import Path
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPlainTextEdit,
-    QPushButton, QLineEdit, QCheckBox, QFileDialog, QFrame, QMessageBox
+    QPushButton, QLineEdit, QCheckBox, QFileDialog, QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QTextCursor
@@ -28,16 +28,16 @@ class ConsoleTab(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 14, 20, 20)
-        layout.setSpacing(10)
+        layout.setContentsMargins(24, 18, 24, 24)
+        layout.setSpacing(12)
 
         # ---- Toolbar
         toolbar = QHBoxLayout()
-        toolbar.setSpacing(8)
+        toolbar.setSpacing(10)
 
         self.lbl_proc_indicator = QLabel("Гра не запущена", self)
         self.lbl_proc_indicator.setStyleSheet(
-            "color:#64748b; font-size:11px; font-weight:600;"
+            "color: #737373; font-size: 11px; font-weight: 600;"
         )
         toolbar.addWidget(self.lbl_proc_indicator)
 
@@ -68,16 +68,16 @@ class ConsoleTab(QWidget):
 
         # ---- Command input
         cmd_row = QHBoxLayout()
-        cmd_row.setSpacing(8)
+        cmd_row.setSpacing(10)
 
         lbl_prompt = QLabel(">", self)
         lbl_prompt.setStyleSheet(
-            "color:#22c55e; font-weight:700; font-family:Consolas,monospace; font-size:14px;"
+            "color: #22c55e; font-weight: 700; font-family: Consolas, monospace; font-size: 15px;"
         )
         cmd_row.addWidget(lbl_prompt)
 
         self.edit_cmd = QLineEdit(self)
-        self.edit_cmd.setPlaceholderText("Введіть команду...")
+        self.edit_cmd.setPlaceholderText("Введіть команду CMD для запуску...")
         self.edit_cmd.returnPressed.connect(self._send_command)
         cmd_row.addWidget(self.edit_cmd)
 
@@ -89,10 +89,8 @@ class ConsoleTab(QWidget):
 
         layout.addLayout(cmd_row)
 
-        # Welcome
-        self.append_log(f"[{time.strftime('%H:%M:%S')}] Консоль ініціалізовано. Процеси запускаються автономно.")
+        self.append_log(f"[{time.strftime('%H:%M:%S')}] Консоль готова. Процеси запускаються автономно.")
 
-    # ------------------------------------------------------------------ API
     def append_log(self, text: str):
         if not text:
             return
@@ -104,7 +102,6 @@ class ConsoleTab(QWidget):
     def clear_console(self):
         self.terminal.clear()
 
-    # ------------------------------------------------------------------ Private
     def _send_command(self):
         cmd = self.edit_cmd.text().strip()
         if not cmd:
@@ -129,12 +126,12 @@ class ConsoleTab(QWidget):
     def _check_process_status(self):
         if self.proc_mgr.is_game_running():
             pid = self.proc_mgr.current_pid
-            self.lbl_proc_indicator.setText(f"Гра працює  PID {pid}")
+            self.lbl_proc_indicator.setText(f"Гра працює (PID: {pid})")
             self.lbl_proc_indicator.setStyleSheet(
-                "color:#22c55e; font-size:11px; font-weight:700;"
+                "color: #22c55e; font-size: 11px; font-weight: 700;"
             )
         else:
             self.lbl_proc_indicator.setText("Гра не запущена")
             self.lbl_proc_indicator.setStyleSheet(
-                "color:#64748b; font-size:11px; font-weight:600;"
+                "color: #737373; font-size: 11px; font-weight: 600;"
             )
