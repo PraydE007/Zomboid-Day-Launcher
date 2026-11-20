@@ -1,13 +1,27 @@
+"""
+Settings Tab — Clean sectioned layout, no emoji, minimal chrome.
+"""
 from pathlib import Path
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QCheckBox, QComboBox, QFileDialog, QMessageBox,
-    QFrame, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView
+    QFrame, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
+    QScrollArea
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from core.config import detect_steam_pz_path, detect_user_zomboid_dir, get_default_hero_image
 from ui.dialogs.repo_dialog import RepoEditDialog
+
+
+class _SectionHeader(QLabel):
+    """Tiny uppercase section label."""
+    def __init__(self, text: str, parent=None):
+        super().__init__(text.upper(), parent)
+        self.setStyleSheet(
+            "color:#64748b; font-size:11px; font-weight:700; letter-spacing:1px;"
+            "padding:0; margin:0; background:transparent;"
+        )
 
 
 class SettingsTab(QWidget):
@@ -22,83 +36,80 @@ class SettingsTab(QWidget):
         self._load_settings()
 
     def _setup_ui(self):
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 16, 20, 20)
-        main_layout.setSpacing(16)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
 
-        # 1. Game Paths Card
-        card_paths = QFrame(self)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea{background:transparent; border:none;}")
+
+        content = QWidget()
+        main = QVBoxLayout(content)
+        main.setContentsMargins(24, 18, 24, 24)
+        main.setSpacing(20)
+
+        # ============================================================ Paths
+        card_paths = QFrame(content)
         card_paths.setProperty("class", "GlassCard")
-        l_paths = QVBoxLayout(card_paths)
-        l_paths.setSpacing(10)
+        lp = QVBoxLayout(card_paths)
+        lp.setContentsMargins(16, 14, 16, 14)
+        lp.setSpacing(10)
 
-        lbl_paths_header = QLabel("📁 ШЛЯХИ ТА ПАПКИ ГРИ", card_paths)
-        lbl_paths_header.setStyleSheet("color: #38bdf8; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;")
-        l_paths.addWidget(lbl_paths_header)
+        lp.addWidget(_SectionHeader("Шляхи", card_paths))
 
-        # Game Dir
-        l_paths.addWidget(QLabel("Папка встановлення Project Zomboid (Steam/Standalone):", card_paths))
-        row_game_dir = QHBoxLayout()
+        lp.addWidget(QLabel("Папка Project Zomboid:", card_paths))
+        row_gd = QHBoxLayout()
         self.edit_game_dir = QLineEdit(card_paths)
-        row_game_dir.addWidget(self.edit_game_dir)
-        btn_browse_game = QPushButton("Огляд...", card_paths)
-        btn_browse_game.setProperty("class", "SecondaryButton")
-        btn_browse_game.clicked.connect(self._browse_game_dir)
-        row_game_dir.addWidget(btn_browse_game)
-        btn_auto_game = QPushButton("🔍 Автопошук", card_paths)
-        btn_auto_game.setProperty("class", "SecondaryButton")
-        btn_auto_game.clicked.connect(self._auto_detect_game_dir)
-        row_game_dir.addWidget(btn_auto_game)
-        l_paths.addLayout(row_game_dir)
+        row_gd.addWidget(self.edit_game_dir)
+        btn_br_g = QPushButton("Огляд", card_paths)
+        btn_br_g.setProperty("class", "SecondaryButton")
+        btn_br_g.clicked.connect(self._browse_game_dir)
+        row_gd.addWidget(btn_br_g)
+        btn_auto = QPushButton("Автопошук", card_paths)
+        btn_auto.setProperty("class", "SecondaryButton")
+        btn_auto.clicked.connect(self._auto_detect_game_dir)
+        row_gd.addWidget(btn_auto)
+        lp.addLayout(row_gd)
 
-        # User Dir
-        l_paths.addWidget(QLabel("Папка профілю Zomboid (Saves, Mods, Logs):", card_paths))
-        row_user_dir = QHBoxLayout()
+        lp.addWidget(QLabel("Папка профілю Zomboid:", card_paths))
+        row_ud = QHBoxLayout()
         self.edit_user_dir = QLineEdit(card_paths)
-        row_user_dir.addWidget(self.edit_user_dir)
-        btn_browse_user = QPushButton("Огляд...", card_paths)
-        btn_browse_user.setProperty("class", "SecondaryButton")
-        btn_browse_user.clicked.connect(self._browse_user_dir)
-        row_user_dir.addWidget(btn_browse_user)
-        l_paths.addLayout(row_user_dir)
+        row_ud.addWidget(self.edit_user_dir)
+        btn_br_u = QPushButton("Огляд", card_paths)
+        btn_br_u.setProperty("class", "SecondaryButton")
+        btn_br_u.clicked.connect(self._browse_user_dir)
+        row_ud.addWidget(btn_br_u)
+        lp.addLayout(row_ud)
 
-        # Hero Image
-        l_paths.addWidget(QLabel("Фонова картинка банера лаунчера:", card_paths))
-        row_hero = QHBoxLayout()
+        lp.addWidget(QLabel("Фонова картинка:", card_paths))
+        row_h = QHBoxLayout()
         self.edit_hero = QLineEdit(card_paths)
-        row_hero.addWidget(self.edit_hero)
-        btn_browse_hero = QPushButton("Огляд...", card_paths)
-        btn_browse_hero.setProperty("class", "SecondaryButton")
-        btn_browse_hero.clicked.connect(self._browse_hero_image)
-        row_hero.addWidget(btn_browse_hero)
-        btn_reset_hero = QPushButton("За замовчуванням", card_paths)
-        btn_reset_hero.setProperty("class", "SecondaryButton")
-        btn_reset_hero.clicked.connect(self._reset_hero_image)
-        row_hero.addWidget(btn_reset_hero)
-        l_paths.addLayout(row_hero)
+        row_h.addWidget(self.edit_hero)
+        btn_br_h = QPushButton("Огляд", card_paths)
+        btn_br_h.setProperty("class", "SecondaryButton")
+        btn_br_h.clicked.connect(self._browse_hero_image)
+        row_h.addWidget(btn_br_h)
+        btn_rst = QPushButton("Скинути", card_paths)
+        btn_rst.setProperty("class", "SecondaryButton")
+        btn_rst.clicked.connect(self._reset_hero_image)
+        row_h.addWidget(btn_rst)
+        lp.addLayout(row_h)
 
-        main_layout.addWidget(card_paths)
+        main.addWidget(card_paths)
 
-        # 2. Repositories & Install Queue Card
-        card_repos = QFrame(self)
+        # ============================================================ Repos
+        card_repos = QFrame(content)
         card_repos.setProperty("class", "GlassCard")
-        l_repos = QVBoxLayout(card_repos)
-        l_repos.setSpacing(10)
+        lr = QVBoxLayout(card_repos)
+        lr.setContentsMargins(16, 14, 16, 14)
+        lr.setSpacing(10)
 
-        header_repo_row = QHBoxLayout()
-        lbl_repo_header = QLabel("📦 РЕПОЗИТОРІЇ ТА ЧЕРГА ВСТАНОВЛЕННЯ", card_repos)
-        lbl_repo_header.setStyleSheet("color: #38bdf8; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;")
-        header_repo_row.addWidget(lbl_repo_header)
-        header_repo_row.addStretch()
-        lbl_repo_hint = QLabel("Порядок встановлення регулюється кнопками Вгору/Вниз", card_repos)
-        lbl_repo_hint.setStyleSheet("color: #64748b; font-size: 11px;")
-        header_repo_row.addWidget(lbl_repo_hint)
-        l_repos.addLayout(header_repo_row)
+        lr.addWidget(_SectionHeader("Репозиторії", card_repos))
 
-        # Repos Table
         self.table_repos = QTableWidget(card_repos)
         self.table_repos.setColumnCount(5)
-        self.table_repos.setHorizontalHeaderLabels(["Черга", "Активний", "Назва компонента", "Тип джерела", "Шлях / URL"])
+        self.table_repos.setHorizontalHeaderLabels(["#", "On", "Назва", "Тип", "Шлях / URL"])
         self.table_repos.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table_repos.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table_repos.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
@@ -106,86 +117,84 @@ class SettingsTab(QWidget):
         self.table_repos.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         self.table_repos.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_repos.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.table_repos.setMinimumHeight(160)
-        l_repos.addWidget(self.table_repos)
+        self.table_repos.setMinimumHeight(140)
+        lr.addWidget(self.table_repos)
 
-        # Table Control Buttons
-        repo_btn_row = QHBoxLayout()
-        self.btn_move_up = QPushButton("▲ Вгору", card_repos)
-        self.btn_move_up.setProperty("class", "SecondaryButton")
-        self.btn_move_up.clicked.connect(self._move_repo_up)
-        repo_btn_row.addWidget(self.btn_move_up)
+        repo_btns = QHBoxLayout()
+        repo_btns.setSpacing(6)
+        for label, slot in [
+            ("Вгору", self._move_repo_up),
+            ("Вниз", self._move_repo_down),
+        ]:
+            b = QPushButton(label, card_repos)
+            b.setProperty("class", "SecondaryButton")
+            b.clicked.connect(slot)
+            repo_btns.addWidget(b)
 
-        self.btn_move_down = QPushButton("▼ Вниз", card_repos)
-        self.btn_move_down.setProperty("class", "SecondaryButton")
-        self.btn_move_down.clicked.connect(self._move_repo_down)
-        repo_btn_row.addWidget(self.btn_move_down)
+        repo_btns.addSpacing(16)
 
-        repo_btn_row.addSpacing(20)
+        for label, slot in [
+            ("Додати", self._add_repo),
+            ("Редагувати", self._edit_repo),
+            ("Видалити", self._delete_repo),
+        ]:
+            b = QPushButton(label, card_repos)
+            b.setProperty("class", "SecondaryButton")
+            b.clicked.connect(slot)
+            repo_btns.addWidget(b)
 
-        self.btn_add_repo = QPushButton("➕ Додати репозиторій", card_repos)
-        self.btn_add_repo.setProperty("class", "SecondaryButton")
-        self.btn_add_repo.clicked.connect(self._add_repo)
-        repo_btn_row.addWidget(self.btn_add_repo)
+        repo_btns.addStretch()
+        lr.addLayout(repo_btns)
+        main.addWidget(card_repos)
 
-        self.btn_edit_repo = QPushButton("✏️ Редагувати", card_repos)
-        self.btn_edit_repo.setProperty("class", "SecondaryButton")
-        self.btn_edit_repo.clicked.connect(self._edit_repo)
-        repo_btn_row.addWidget(self.btn_edit_repo)
-
-        self.btn_delete_repo = QPushButton("🗑️ Видалити", card_repos)
-        self.btn_delete_repo.setProperty("class", "SecondaryButton")
-        self.btn_delete_repo.clicked.connect(self._delete_repo)
-        repo_btn_row.addWidget(self.btn_delete_repo)
-
-        repo_btn_row.addStretch()
-        l_repos.addLayout(repo_btn_row)
-
-        main_layout.addWidget(card_repos)
-
-        # 3. Launch & Memory Settings Card
-        card_launch = QFrame(self)
+        # ============================================================ Launch
+        card_launch = QFrame(content)
         card_launch.setProperty("class", "GlassCard")
-        l_launch = QVBoxLayout(card_launch)
-        l_launch.setSpacing(10)
+        ll = QVBoxLayout(card_launch)
+        ll.setContentsMargins(16, 14, 16, 14)
+        ll.setSpacing(10)
 
-        lbl_launch_header = QLabel("⚙️ ПАРАМЕТРИ ЗАПУСКУ ТА ПОВЕДІНКИ", card_launch)
-        lbl_launch_header.setStyleSheet("color: #38bdf8; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;")
-        l_launch.addWidget(lbl_launch_header)
+        ll.addWidget(_SectionHeader("Запуск", card_launch))
 
         row_ram = QHBoxLayout()
-        row_ram.addWidget(QLabel("Виділена оперативна пам'ять (RAM):", card_launch))
+        row_ram.addWidget(QLabel("RAM:", card_launch))
         self.combo_ram = QComboBox(card_launch)
-        self.combo_ram.addItems(["4 GB (-Xms4096m -Xmx6144m)", "8 GB (-Xms6144m -Xmx8192m)", "12 GB (-Xms8192m -Xmx12288m) [Рекомендовано]", "16 GB (-Xms12288m -Xmx16384m)"])
+        self.combo_ram.addItems([
+            "4 GB", "8 GB", "12 GB (рекомендовано)", "16 GB"
+        ])
         self.combo_ram.setCurrentIndex(2)
         row_ram.addWidget(self.combo_ram)
         row_ram.addStretch()
-        l_launch.addLayout(row_ram)
+        ll.addLayout(row_ram)
 
-        # Checkboxes
-        self.chk_tray_on_start = QCheckBox("Ховати лаунчер в системний трей при запуску гри (рекомендовано)", card_launch)
-        l_launch.addWidget(self.chk_tray_on_start)
+        self.chk_tray_on_start = QCheckBox("Згортати в трей при старті гри", card_launch)
+        ll.addWidget(self.chk_tray_on_start)
 
-        self.chk_show_cmd = QCheckBox("Показувати окреме зовнішнє вікно Windows CMD для консолі гри", card_launch)
-        l_launch.addWidget(self.chk_show_cmd)
+        self.chk_show_cmd = QCheckBox("Показувати зовнішнє вікно CMD", card_launch)
+        ll.addWidget(self.chk_show_cmd)
 
-        self.chk_scan_modguard = QCheckBox("Автоматично перевіряти моди через PZ-ModGuard перед кожним запуском", card_launch)
-        l_launch.addWidget(self.chk_scan_modguard)
+        self.chk_scan_modguard = QCheckBox("Сканувати моди перед запуском (ModGuard)", card_launch)
+        ll.addWidget(self.chk_scan_modguard)
 
-        main_layout.addWidget(card_launch)
+        main.addWidget(card_launch)
 
-        # 4. Save Button Row
-        row_bottom = QHBoxLayout()
-        row_bottom.addStretch()
-        self.btn_save = QPushButton("💾 ЗБЕРЕГТИ ВСІ НАЛАШТУВАННЯ", self)
+        # ============================================================ Save
+        row_save = QHBoxLayout()
+        row_save.addStretch()
+        self.btn_save = QPushButton("Зберегти", content)
         self.btn_save.setProperty("class", "PrimaryButton")
-        self.btn_save.setMinimumHeight(44)
+        self.btn_save.setMinimumHeight(40)
+        self.btn_save.setMinimumWidth(160)
         self.btn_save.clicked.connect(self._save_settings)
-        row_bottom.addWidget(self.btn_save)
-        main_layout.addLayout(row_bottom)
+        row_save.addWidget(self.btn_save)
+        main.addLayout(row_save)
 
-        main_layout.addStretch()
+        main.addStretch()
 
+        scroll.setWidget(content)
+        outer.addWidget(scroll)
+
+    # ------------------------------------------------------------------ Data
     def _load_settings(self):
         self.edit_game_dir.setText(self.config.game_dir)
         self.edit_user_dir.setText(self.config.user_zomboid_dir)
@@ -208,40 +217,35 @@ class SettingsTab(QWidget):
 
     def _refresh_repos_table(self):
         self.table_repos.setRowCount(0)
-        for row_idx, r in enumerate(self.repos_cache):
-            self.table_repos.insertRow(row_idx)
+        for i, r in enumerate(self.repos_cache):
+            self.table_repos.insertRow(i)
 
-            # Order
-            item_order = QTableWidgetItem(f"#{row_idx + 1}")
+            item_order = QTableWidgetItem(str(i + 1))
             item_order.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.table_repos.setItem(row_idx, 0, item_order)
+            self.table_repos.setItem(i, 0, item_order)
 
-            # Enabled Checkbox
-            chk_widget = QCheckBox()
-            chk_widget.setChecked(r.get("enabled", True))
-            chk_widget.stateChanged.connect(lambda state, idx=row_idx: self._toggle_repo(idx, state))
-            cell_chk = QWidget()
-            cell_layout = QHBoxLayout(cell_chk)
-            cell_layout.addWidget(chk_widget)
-            cell_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            cell_layout.setContentsMargins(0, 0, 0, 0)
-            self.table_repos.setCellWidget(row_idx, 1, cell_chk)
+            chk = QCheckBox()
+            chk.setChecked(r.get("enabled", True))
+            chk.stateChanged.connect(lambda state, idx=i: self._toggle_repo(idx, state))
+            w = QWidget()
+            lo = QHBoxLayout(w)
+            lo.addWidget(chk)
+            lo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lo.setContentsMargins(0, 0, 0, 0)
+            self.table_repos.setCellWidget(i, 1, w)
 
-            # Name
-            item_name = QTableWidgetItem(r.get("name", ""))
-            self.table_repos.setItem(row_idx, 2, item_name)
+            self.table_repos.setItem(i, 2, QTableWidgetItem(r.get("name", "")))
 
-            # Source Type
             stype = r.get("source_type", "git")
-            item_type = QTableWidgetItem("Локальна" if stype == "local" else ("Локальна / Git" if stype == "local_or_git" else "Git"))
-            self.table_repos.setItem(row_idx, 3, item_type)
+            self.table_repos.setItem(i, 3, QTableWidgetItem(
+                "Local" if stype == "local" else "Git" if stype == "git" else "Local/Git"
+            ))
 
-            # Path / URL
             loc = r.get("local_path") or r.get("git_url") or ""
-            item_src = QTableWidgetItem(loc)
-            self.table_repos.setItem(row_idx, 4, item_src)
+            self.table_repos.setItem(i, 4, QTableWidgetItem(loc))
 
-    def _toggle_repo(self, index: int, state: int):
+    # ------------------------------------------------------------------ Repos
+    def _toggle_repo(self, index, state):
         if 0 <= index < len(self.repos_cache):
             self.repos_cache[index]["enabled"] = (state == 2 or state == Qt.CheckState.Checked.value)
 
@@ -262,9 +266,9 @@ class SettingsTab(QWidget):
     def _add_repo(self):
         dlg = RepoEditDialog(parent=self)
         if dlg.exec():
-            new_repo = dlg.result_data
-            new_repo["order"] = len(self.repos_cache) + 1
-            self.repos_cache.append(new_repo)
+            new = dlg.result_data
+            new["order"] = len(self.repos_cache) + 1
+            self.repos_cache.append(new)
             self._refresh_repos_table()
 
     def _edit_repo(self):
@@ -280,70 +284,62 @@ class SettingsTab(QWidget):
         row = self.table_repos.currentRow()
         if 0 <= row < len(self.repos_cache):
             name = self.repos_cache[row].get("name", "")
-            ans = QMessageBox.question(
-                self, "Видалення",
-                f"Видалити репозиторій '{name}' зі списку встановлення?",
+            if QMessageBox.question(
+                self, "Видалення", f"Видалити '{name}'?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if ans == QMessageBox.StandardButton.Yes:
+            ) == QMessageBox.StandardButton.Yes:
                 self.repos_cache.pop(row)
                 self._refresh_repos_table()
 
+    # ------------------------------------------------------------------ Browse
     def _browse_game_dir(self):
-        folder = QFileDialog.getExistingDirectory(self, "Виберіть папку Project Zomboid", self.edit_game_dir.text())
-        if folder:
-            self.edit_game_dir.setText(folder)
+        f = QFileDialog.getExistingDirectory(self, "Папка Project Zomboid", self.edit_game_dir.text())
+        if f:
+            self.edit_game_dir.setText(f)
 
     def _auto_detect_game_dir(self):
         found = detect_steam_pz_path()
         if found:
             self.edit_game_dir.setText(found)
-            QMessageBox.information(self, "Знайдено", f"Знайдено Project Zomboid:\n{found}")
+            QMessageBox.information(self, "Знайдено", f"Project Zomboid:\n{found}")
         else:
-            QMessageBox.warning(self, "Не знайдено", "Не вдалося автоматично знайти папку Project Zomboid у Steam.")
+            QMessageBox.warning(self, "Не знайдено", "Не вдалося знайти Project Zomboid.")
 
     def _browse_user_dir(self):
-        folder = QFileDialog.getExistingDirectory(self, "Виберіть папку профілю Zomboid", self.edit_user_dir.text())
-        if folder:
-            self.edit_user_dir.setText(folder)
+        f = QFileDialog.getExistingDirectory(self, "Папка профілю", self.edit_user_dir.text())
+        if f:
+            self.edit_user_dir.setText(f)
 
     def _browse_hero_image(self):
-        file, _ = QFileDialog.getOpenFileName(self, "Виберіть картинку банера", "", "Зображення (*.png *.jpg *.jpeg *.webp)")
-        if file:
-            self.edit_hero.setText(file)
-            self.sig_hero_image_changed.emit(file)
+        f, _ = QFileDialog.getOpenFileName(self, "Картинка банера", "", "Images (*.png *.jpg *.jpeg *.webp)")
+        if f:
+            self.edit_hero.setText(f)
+            self.sig_hero_image_changed.emit(f)
 
     def _reset_hero_image(self):
-        def_img = get_default_hero_image()
-        self.edit_hero.setText(def_img)
-        self.sig_hero_image_changed.emit(def_img)
+        d = get_default_hero_image()
+        self.edit_hero.setText(d)
+        self.sig_hero_image_changed.emit(d)
 
+    # ------------------------------------------------------------------ Save
     def _save_settings(self):
-        gdir = self.edit_game_dir.text().strip()
-        udir = self.edit_user_dir.text().strip()
-        himg = self.edit_hero.text().strip()
-
-        self.config.set("game_dir", gdir)
-        self.config.set("user_zomboid_dir", udir)
-        self.config.set("hero_image", himg)
+        self.config.set("game_dir", self.edit_game_dir.text().strip())
+        self.config.set("user_zomboid_dir", self.edit_user_dir.text().strip())
+        self.config.set("hero_image", self.edit_hero.text().strip())
         self.config.set("hide_to_tray_on_start", self.chk_tray_on_start.isChecked())
         self.config.set("show_external_cmd", self.chk_show_cmd.isChecked())
         self.config.set("scan_modguard_before_launch", self.chk_scan_modguard.isChecked())
 
-        # RAM
-        ram_idx = self.combo_ram.currentIndex()
         ram_configs = [
             ("4096m", "6144m"),
             ("6144m", "8192m"),
             ("8192m", "12288m"),
-            ("12288m", "16384m")
+            ("12288m", "16384m"),
         ]
-        xms, xmx = ram_configs[ram_idx]
+        xms, xmx = ram_configs[self.combo_ram.currentIndex()]
         self.config.set("ram_xms", xms)
         self.config.set("ram_xmx", xmx)
 
-        # Repositories
         self.config.update_repositories(self.repos_cache)
-
-        QMessageBox.information(self, "Збережено", "Всі налаштування лаунчера успішно збережено!")
+        QMessageBox.information(self, "Збережено", "Налаштування збережено.")
         self.sig_settings_saved.emit()

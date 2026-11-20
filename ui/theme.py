@@ -1,276 +1,167 @@
 """
-Zomboid Day Launcher - UI Theme & Modern Gamer Stylesheet
+Zomboid Day Launcher — Clean Dark Theme
+Inspired by Epic Games / Riot launchers. No clutter, no noise.
 """
 
 MODERN_DARK_THEME = """
-/* ===== GLOBAL APPLICATION STYLES ===== */
+/* ===== BASE ===== */
 QWidget {
-    background-color: #0b0f19;
-    color: #e2e8f0;
-    font-family: 'Segoe UI', 'Ubuntu', 'Roboto', sans-serif;
+    background-color: #0a0e17;
+    color: #c8d0dc;
+    font-family: 'Segoe UI', sans-serif;
     font-size: 13px;
-    selection-background-color: #10b981;
-    selection-color: #ffffff;
+    selection-background-color: #22c55e;
+    selection-color: #fff;
 }
 
-/* Scrollbars */
+/* ===== SCROLLBARS — thin & invisible-ish ===== */
 QScrollBar:vertical {
-    border: none;
-    background: #0b0f19;
-    width: 8px;
-    margin: 0px;
-    border-radius: 4px;
+    border: none; background: transparent; width: 6px;
 }
 QScrollBar::handle:vertical {
-    background: #273142;
-    min-height: 25px;
-    border-radius: 4px;
+    background: #1e293b; min-height: 30px; border-radius: 3px;
 }
-QScrollBar::handle:vertical:hover {
-    background: #3b475c;
-}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-    height: 0px;
-}
-
+QScrollBar::handle:vertical:hover { background: #334155; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 QScrollBar:horizontal {
-    border: none;
-    background: #0b0f19;
-    height: 8px;
-    margin: 0px;
-    border-radius: 4px;
+    border: none; background: transparent; height: 6px;
 }
 QScrollBar::handle:horizontal {
-    background: #273142;
-    min-width: 25px;
-    border-radius: 4px;
-}
-QScrollBar::handle:horizontal:hover {
-    background: #3b475c;
+    background: #1e293b; min-width: 30px; border-radius: 3px;
 }
 
 /* ===== TITLE BAR ===== */
 #TitleBar {
-    background-color: #080c14;
-    border-bottom: 1px solid #1e2638;
+    background-color: #070a11;
+    border-bottom: 1px solid #141a28;
 }
-
 #TitleLabel {
-    color: #f8fafc;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 1px;
+    color: #e2e8f0; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
 }
-
 #TitleButton {
-    background-color: transparent;
-    color: #94a3b8;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    padding: 6px 12px;
+    background: transparent; color: #64748b; border: none;
+    border-radius: 3px; font-size: 13px; padding: 5px 10px;
 }
-#TitleButton:hover {
-    background-color: #1e293b;
-    color: #f1f5f9;
-}
-#CloseButton:hover {
-    background-color: #ef4444;
-    color: #ffffff;
-}
+#TitleButton:hover { background: #1e293b; color: #f1f5f9; }
+#CloseButton:hover { background: #dc2626; color: #fff; }
 
-/* ===== NAVIGATION TAB BAR ===== */
+/* ===== NAVIGATION ===== */
 #NavBar {
-    background-color: #0d1322;
-    border-bottom: 1px solid #1a2234;
-    padding: 6px 12px;
+    background-color: #070a11;
+    border-bottom: 1px solid #141a28;
 }
-
 QPushButton.NavTab {
-    background-color: transparent;
-    color: #94a3b8;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 18px;
-    font-weight: 600;
-    font-size: 13px;
-    text-align: center;
+    background: transparent; color: #64748b; border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0; padding: 10px 20px;
+    font-weight: 600; font-size: 13px;
 }
-QPushButton.NavTab:hover {
-    background-color: #161f33;
-    color: #f8fafc;
-}
+QPushButton.NavTab:hover { color: #e2e8f0; }
 QPushButton.NavTab:checked {
-    background-color: #1a253e;
-    color: #38bdf8;
-    border-bottom: 2px solid #38bdf8;
+    color: #f8fafc;
+    border-bottom: 2px solid #22c55e;
 }
 
-/* ===== CARDS & CONTAINERS ===== */
+/* ===== GLASS CARDS ===== */
 QFrame.GlassCard {
-    background-color: #111726;
-    border: 1px solid #1e293b;
-    border-radius: 12px;
-    padding: 16px;
-}
-
-QFrame.HeroOverlay {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 rgba(11, 15, 25, 0.2),
-        stop:0.6 rgba(11, 15, 25, 0.75),
-        stop:1 rgba(11, 15, 25, 0.98));
-    border-radius: 12px;
-}
-
-/* ===== BUTTONS ===== */
-QPushButton.PrimaryButton {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10b981, stop:1 #059669);
-    color: #ffffff;
-    border: none;
+    background-color: #0f1420;
+    border: 1px solid #1a2030;
     border-radius: 10px;
+}
+
+/* ===== PRIMARY BUTTON — the big green PLAY ===== */
+QPushButton.PrimaryButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #22c55e, stop:1 #16a34a);
+    color: #fff; border: none; border-radius: 6px;
     font-family: 'Freckle Face', 'Segoe UI', sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    padding: 12px 28px;
-    letter-spacing: 1px;
+    font-size: 18px; font-weight: 700; padding: 14px 40px;
+    letter-spacing: 1.5px;
 }
 QPushButton.PrimaryButton:hover {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #34d399, stop:1 #10b981);
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4ade80, stop:1 #22c55e);
 }
-QPushButton.PrimaryButton:pressed {
-    background: #047857;
+QPushButton.PrimaryButton:pressed { background: #15803d; }
+QPushButton.PrimaryButton:disabled {
+    background: #1e293b; color: #475569;
 }
 
+/* ===== DEBUG BUTTON ===== */
 QPushButton.DebugButton {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366f1, stop:1 #4f46e5);
-    color: #ffffff;
-    border: none;
-    border-radius: 10px;
-    font-family: 'Freckle Face', 'Segoe UI', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    padding: 12px 24px;
-    letter-spacing: 1px;
+    background: transparent;
+    color: #94a3b8;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    font-size: 13px; font-weight: 600;
+    padding: 14px 24px;
 }
 QPushButton.DebugButton:hover {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #818cf8, stop:1 #6366f1);
+    color: #e2e8f0; border-color: #475569; background: #111827;
 }
-QPushButton.DebugButton:pressed {
-    background: #4338ca;
-}
+QPushButton.DebugButton:pressed { background: #0f172a; }
 
+/* ===== SECONDARY BUTTON ===== */
 QPushButton.SecondaryButton {
-    background-color: #1e293b;
-    color: #e2e8f0;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-weight: 600;
-    font-size: 12px;
+    background: transparent; color: #94a3b8;
+    border: 1px solid #1e293b; border-radius: 6px;
+    padding: 7px 14px; font-weight: 500; font-size: 12px;
 }
 QPushButton.SecondaryButton:hover {
-    background-color: #334155;
-    color: #ffffff;
-    border-color: #475569;
-}
-QPushButton.SecondaryButton:pressed {
-    background-color: #0f172a;
+    color: #e2e8f0; border-color: #334155; background: rgba(30, 41, 59, 0.5);
 }
 
-/* ===== INPUTS & CONTROLS ===== */
+/* ===== INPUTS ===== */
 QLineEdit, QComboBox, QSpinBox {
-    background-color: #090d16;
-    border: 1px solid #1e293b;
-    border-radius: 8px;
-    color: #f1f5f9;
-    padding: 8px 12px;
-    selection-background-color: #10b981;
+    background-color: #0a0e17;
+    border: 1px solid #1e293b; border-radius: 6px;
+    color: #e2e8f0; padding: 7px 10px;
 }
-QLineEdit:focus, QComboBox:focus {
-    border: 1px solid #38bdf8;
-    background-color: #0d1322;
-}
-
-QComboBox::drop-down {
-    border: none;
-    padding-right: 8px;
-}
+QLineEdit:focus, QComboBox:focus { border-color: #22c55e; }
+QComboBox::drop-down { border: none; padding-right: 6px; }
 QComboBox QAbstractItemView {
-    background-color: #111726;
-    border: 1px solid #1e293b;
-    selection-background-color: #1e293b;
-    color: #f1f5f9;
-    padding: 4px;
+    background: #0f1420; border: 1px solid #1e293b;
+    selection-background-color: #1e293b; color: #e2e8f0;
 }
 
-QCheckBox {
-    color: #cbd5e1;
-    spacing: 8px;
-    font-size: 13px;
-}
+/* ===== CHECKBOX ===== */
+QCheckBox { color: #94a3b8; spacing: 8px; font-size: 12px; }
 QCheckBox::indicator {
-    width: 18px;
-    height: 18px;
-    border: 1px solid #334155;
-    border-radius: 4px;
-    background-color: #0d1322;
+    width: 16px; height: 16px;
+    border: 1px solid #334155; border-radius: 3px;
+    background: #0a0e17;
 }
 QCheckBox::indicator:checked {
-    background-color: #10b981;
-    border-color: #10b981;
-    image: none;
+    background: #22c55e; border-color: #22c55e;
 }
 
 /* ===== PROGRESS BAR ===== */
 QProgressBar {
-    background-color: #090d16;
-    border: 1px solid #1e293b;
-    border-radius: 8px;
-    text-align: center;
-    color: #ffffff;
-    font-weight: 600;
-    font-size: 11px;
-    height: 18px;
+    background: #0a0e17; border: 1px solid #1e293b;
+    border-radius: 4px; text-align: center;
+    color: #e2e8f0; font-weight: 600; font-size: 11px; height: 14px;
 }
 QProgressBar::chunk {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10b981, stop:1 #38bdf8);
-    border-radius: 7px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #22c55e, stop:1 #38bdf8);
+    border-radius: 3px;
 }
 
 /* ===== TABLES ===== */
 QTableWidget {
-    background-color: #0d1322;
-    border: 1px solid #1e293b;
-    border-radius: 8px;
-    gridline-color: #161f33;
-    color: #e2e8f0;
+    background: #0a0e17; border: 1px solid #1a2030;
+    border-radius: 6px; gridline-color: #141a28; color: #c8d0dc;
 }
-QTableWidget::item {
-    padding: 8px;
-    border-bottom: 1px solid #161f33;
-}
-QTableWidget::item:selected {
-    background-color: #1e293b;
-    color: #38bdf8;
-}
+QTableWidget::item { padding: 6px; border-bottom: 1px solid #141a28; }
+QTableWidget::item:selected { background: #1e293b; color: #22c55e; }
 QHeaderView::section {
-    background-color: #090d16;
-    color: #94a3b8;
-    padding: 8px;
-    border: none;
-    border-bottom: 1px solid #1e293b;
-    font-weight: 700;
+    background: #070a11; color: #64748b; padding: 6px;
+    border: none; border-bottom: 1px solid #1a2030; font-weight: 600; font-size: 11px;
 }
 
-/* ===== CONSOLE TERMINAL ===== */
+/* ===== CONSOLE ===== */
 QPlainTextEdit.TerminalView {
-    background-color: #07090e;
-    color: #34d399;
-    font-family: 'Consolas', 'Courier New', 'Fira Code', monospace;
-    font-size: 12px;
-    line-height: 1.4;
-    border: 1px solid #161f33;
-    border-radius: 8px;
-    padding: 10px;
+    background-color: #050710;
+    color: #22c55e;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px; border: 1px solid #141a28;
+    border-radius: 6px; padding: 8px;
 }
 """
