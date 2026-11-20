@@ -2,11 +2,12 @@ import os
 import shutil
 import time
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from core.repo_manager import RepoManager
 from core.manifest_parser import ManifestParser
+from core.utils import get_app_dir
 from core.i18n import t
 
 
@@ -207,3 +208,137 @@ class InstallWorker(QThread):
             err_details = traceback.format_exc()
             self.sig_log.emit(f"[Критична помилка встановлення]:\n{err_details}")
             self.sig_finished.emit(False, f"Помилка встановлення: {str(e)}")
+
+
+def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[bool, str]:
+    """
+    Directly reinstall/execute a specific installation or verification step.
+    Supports individual re-execution of:
+      - 'jvm_scripts' / 'step_game_configs'
+      - 'zombie_buddy' / 'step_zombie_buddy'
+      - 'modguard' / 'step_modguard'
+      - 'steam_workshop' / 'step_steam_workshop'
+    """
+    def log(msg: str):
+        if log_callback:
+            log_callback(msg)
+
+    game_dir = Path(config_manager.game_dir)
+    if not game_dir.exists():
+        return False, f"Game folder not found: {game_dir}"
+
+    base_dir = get_app_dir()
+
+    # 1. JVM Startup Scripts
+    if step_id in ("jvm_scripts", "step_game_configs"):
+        candidates = [
+            Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\game-configuration-files"),
+            base_dir / "cache" / "repos" / "zomboid-day-files" / "game-configuration-files",
+            base_dir / "game-configuration-files"
+        ]
+        source_dir = None
+        for c in candidates:
+            if c.exists() and (c / "ProjectZomboid64.bat").exists():
+                source_dir = c
+                break
+
+        if not source_dir:
+            return False, "Source files for JVM scripts not found."
+
+        try:
+            copied = []
+            for item in source_dir.iterdir():
+                if item.is_file():
+                    target = game_dir / item.name
+                    if target.exists():
+                        try:
+                            shutil.copy2(target, target.with_suffix(target.suffix + ".bak"))
+                        except Exception:
+                            pass
+                    shutil.copy2(item, target)
+                    copied.append(item.name)
+            log(f"Reinstalled JVM scripts: {', '.join(copied)}")
+            return True, f"Reinstalled: {', '.join(copied)}"
+        except Exception as e:
+            return False, f"Copy error: {e}"
+
+    # 2. ZombieBuddy & zbNative DLL
+    elif step_id in ("zombie_buddy", "step_zombie_buddy"):
+        candidates = [
+            Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\ZombieBuddy"),
+            base_dir / "cache" / "repos" / "zomboid-day-files" / "ZombieBuddy",
+            base_dir / "ZombieBuddy"
+        ]
+        source_dir = None
+        for c in candidates:
+            if c.exists() and (c / "ZombieBuddy.jar").exists():
+                source_dir = c
+                break
+
+        if not source_dir:
+            return False, "Source files for ZombieBuddy not found."
+
+        try:
+            copied = []
+            for item in source_dir.iterdir():
+                if item.is_file():
+                    target = game_dir / item.name
+                    if target.exists():
+                        try:
+                            shutil.copy2(target, target.with_suffix(target.suffix + ".bak"))
+                        except Exception:
+                            pass
+                    shutil.copy2(item, target)
+                    copied.append(item.name)
+            log(f"Reinstalled ZombieBuddy: {', '.join(copied)}")
+            return True, f"Reinstalled: {', '.join(copied)}"
+        except Exception as e:
+            return False, f"Copy error: {e}"
+
+    # 3. PZ-ModGuard Security Scanner
+    elif step_id in ("modguard", "step_modguard"):
+        candidates = [
+            base_dir / "cache" / "repos" / "pz-modguard" / "PZ-ModGuard.bat",
+            Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\PZ-ModGuard.bat"),
+            base_dir / "PZ-ModGuard.bat"
+        ]
+        source_bat = None
+        for c in candidates:
+            if c.exists():
+                source_bat = c
+                break
+
+        if not source_bat:
+            cache_dir = base_dir / "cache" / "repos"
+            context = {"GAME_DIR": str(game_dir), "USER_ZOMBOID_DIR": str(config_manager.user_zomboid_dir)}
+            repo_mgr = RepoManager(cache_dir, context)
+            modguard_repo = config_manager.get_repo("pz-modguard")
+            if modguard_repo:
+                try:
+                    repo_path = repo_mgr.sync_repository(modguard_repo)
+                    if (repo_path / "PZ-ModGuard.bat").exists():
+                        source_bat = repo_path / "PZ-ModGuard.bat"
+                except Exception:
+                    pass
+
+        if not source_bat or not source_bat.exists():
+            return False, "PZ-ModGuard.bat not found."
+
+        try:
+            target = game_dir / "PZ-ModGuard.bat"
+            shutil.copy2(source_bat, target)
+            log(f"Reinstalled PZ-ModGuard.bat into {target}")
+            return True, "PZ-ModGuard.bat successfully reinstalled!"
+        except Exception as e:
+            return False, f"PZ-ModGuard copy error: {e}"
+
+    # 4. Steam Workshop Collection
+    elif step_id in ("steam_workshop", "step_steam_workshop"):
+        try:
+            os.startfile("steam://url/CommunityFilePage/3831192498")
+        except Exception:
+            import webbrowser
+            webbrowser.open("https://steamcommunity.com/sharedfiles/filedetails/?id=3831192498")
+        return True, "Opened Steam Workshop collection!"
+
+    return False, f"Unknown step: {step_id}"

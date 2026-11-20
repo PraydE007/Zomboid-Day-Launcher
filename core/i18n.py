@@ -189,6 +189,38 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "en": "Diagnostics",
         "uk": "Діагностика"
     },
+    "diag_title": {
+        "en": "System Diagnostics",
+        "uk": "Діагностика системи"
+    },
+    "diag_header_title": {
+        "en": "SYSTEM VERIFICATION & DIAGNOSTICS",
+        "uk": "СИСТЕМНА ДІАГНОСТИКА ТА ПЕРЕВІРКА"
+    },
+    "btn_reinstall_step": {
+        "en": "🔄 Reinstall",
+        "uk": "🔄 Перевстановити"
+    },
+    "btn_reinstall_all": {
+        "en": "🔄 Reinstall All",
+        "uk": "🔄 Перевстановити все"
+    },
+    "btn_open_folder": {
+        "en": "📂 Open Folder",
+        "uk": "📂 Відкрити папку"
+    },
+    "btn_open_steam": {
+        "en": "🌐 Open in Steam",
+        "uk": "🌐 Відкрити в Steam"
+    },
+    "btn_refresh_diag": {
+        "en": "⟳ Refresh",
+        "uk": "⟳ Оновити"
+    },
+    "step_reinstalled_success": {
+        "en": "Successfully reinstalled!",
+        "uk": "Успішно перевстановлено!"
+    },
 
     # Version Statuses
     "status_up_to_date": {

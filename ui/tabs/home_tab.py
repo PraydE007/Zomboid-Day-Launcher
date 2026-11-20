@@ -148,12 +148,6 @@ class HomeTab(QWidget):
             '<span style="font-family:\'Freckle Face\',sans-serif; font-size:50px; color:#22c55e; font-weight:900;">ZOMBOID DAY PROJECT</span>'
         )
         self.lbl_title.setStyleSheet("background: transparent; padding: 0; margin: 0;")
-        
-        title_shadow = QGraphicsDropShadowEffect(self.lbl_title)
-        title_shadow.setBlurRadius(24)
-        title_shadow.setColor(QColor(0, 0, 0, 240))
-        title_shadow.setOffset(0, 3)
-        self.lbl_title.setGraphicsEffect(title_shadow)
         overlay.addWidget(self.lbl_title)
 
         overlay.addSpacing(4)
@@ -169,11 +163,6 @@ class HomeTab(QWidget):
             letter-spacing: 1.5px;
             background: transparent;
         """)
-        sub_shadow = QGraphicsDropShadowEffect(self.lbl_subtitle)
-        sub_shadow.setBlurRadius(16)
-        sub_shadow.setColor(QColor(0, 0, 0, 220))
-        sub_shadow.setOffset(0, 2)
-        self.lbl_subtitle.setGraphicsEffect(sub_shadow)
         overlay.addWidget(self.lbl_subtitle)
 
         overlay.addSpacing(10)
@@ -350,10 +339,9 @@ class HomeTab(QWidget):
         QTimer.singleShot(350, lambda: self.btn_refresh.setText("⟳"))
 
     def _open_diagnostics(self):
-        if not self.last_diag:
-            self.last_diag = self.detector.run_diagnostics(self.config.language)
-        dlg = DiagnosticsDialog(self.last_diag, self.config.language, self)
+        dlg = DiagnosticsDialog(self.detector, self.config, self.config.language, self.window())
         dlg.exec()
+        self.refresh_status()
 
     def retranslate_ui(self):
         lang = self.config.language
