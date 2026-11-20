@@ -37,10 +37,19 @@ class CustomTitleBar(QWidget):
             lbl_icon.setPixmap(pix)
             layout.addWidget(lbl_icon)
 
-        # Title Label
-        lbl_title = QLabel("ZOMBOID DAY LAUNCHER", self)
-        lbl_title.setObjectName("TitleLabel")
-        layout.addWidget(lbl_title)
+        # Title Logo or Label
+        logo_path = Path(__file__).resolve().parent.parent / "assets" / "text-logo.png"
+        if logo_path.exists():
+            lbl_title_logo = QLabel(self)
+            pix = QPixmap(str(logo_path))
+            scaled_title = pix.scaledToHeight(20, Qt.TransformationMode.SmoothTransformation)
+            lbl_title_logo.setPixmap(scaled_title)
+            lbl_title_logo.setStyleSheet("background: transparent; margin-left: 4px;")
+            layout.addWidget(lbl_title_logo)
+        else:
+            lbl_title = QLabel("ZOMBOID DAY LAUNCHER", self)
+            lbl_title.setObjectName("TitleLabel")
+            layout.addWidget(lbl_title)
 
         layout.addStretch()
 

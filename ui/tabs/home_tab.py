@@ -107,16 +107,26 @@ class HomeTab(QWidget):
 
         hero_layout.addStretch()
 
-        # Title & Subtitle inside Hero
-        lbl_game_title = QLabel("PROJECT ZOMBOID: DAY", self.hero)
-        lbl_game_title.setStyleSheet("""
-            color: #ffffff;
-            font-size: 28px;
-            font-weight: 900;
-            letter-spacing: 1.5px;
-            background: transparent;
-        """)
-        hero_layout.addWidget(lbl_game_title)
+        # Title Logo & Subtitle inside Hero
+        logo_path = Path(self.config.base_dir) / "assets" / "text-logo.png"
+        if logo_path.exists():
+            self.lbl_logo = QLabel(self.hero)
+            pix = QPixmap(str(logo_path))
+            scaled_logo = pix.scaledToHeight(62, Qt.TransformationMode.SmoothTransformation)
+            self.lbl_logo.setPixmap(scaled_logo)
+            self.lbl_logo.setStyleSheet("background: transparent; margin-bottom: 4px;")
+            hero_layout.addWidget(self.lbl_logo)
+        else:
+            lbl_game_title = QLabel("PROJECT ZOMBOID: DAY", self.hero)
+            lbl_game_title.setStyleSheet("""
+                color: #ffffff;
+                font-family: 'Freckle Face', 'Segoe UI', sans-serif;
+                font-size: 32px;
+                font-weight: 900;
+                letter-spacing: 1.5px;
+                background: transparent;
+            """)
+            hero_layout.addWidget(lbl_game_title)
 
         lbl_game_sub = QLabel("Автоматичне оновлення конфігурацій, патчів, безпеки та ZombieBuddy", self.hero)
         lbl_game_sub.setStyleSheet("""

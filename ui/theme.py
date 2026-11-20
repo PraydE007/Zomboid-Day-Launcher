@@ -128,10 +128,11 @@ QPushButton.PrimaryButton {
     color: #ffffff;
     border: none;
     border-radius: 10px;
-    font-size: 15px;
+    font-family: 'Freckle Face', 'Segoe UI', sans-serif;
+    font-size: 17px;
     font-weight: 700;
     padding: 12px 28px;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 QPushButton.PrimaryButton:hover {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #34d399, stop:1 #10b981);
@@ -145,10 +146,11 @@ QPushButton.DebugButton {
     color: #ffffff;
     border: none;
     border-radius: 10px;
-    font-size: 14px;
+    font-family: 'Freckle Face', 'Segoe UI', sans-serif;
+    font-size: 16px;
     font-weight: 700;
     padding: 12px 24px;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 QPushButton.DebugButton:hover {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #818cf8, stop:1 #6366f1);

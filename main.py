@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFontDatabase
 
 # Ensure root dir is in sys.path
 BASE_DIR = Path(__file__).resolve().parent
@@ -21,6 +22,11 @@ def main():
     app.setApplicationName("Zomboid Day Launcher")
     app.setApplicationDisplayName("Zomboid Day Launcher")
     app.setOrganizationName("ZomboidDay")
+
+    # Load custom Project Zomboid font if available
+    font_path = BASE_DIR / "font" / "FreckleFaceRegular.ttf"
+    if font_path.exists():
+        QFontDatabase.addApplicationFont(str(font_path))
 
     # Initialize configuration
     config = ConfigManager(base_dir=BASE_DIR)
