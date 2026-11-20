@@ -16,6 +16,14 @@ from ui.main_window import MainWindow
 
 
 def main():
+    # Set Windows App User Model ID so the taskbar and process show our custom icon
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("zomboidday.launcher.app.1.0")
+        except Exception:
+            pass
+
     # Enable High DPI scaling
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     
@@ -23,6 +31,14 @@ def main():
     app.setApplicationName("Zomboid Day Launcher")
     app.setApplicationDisplayName("Zomboid Day Launcher")
     app.setOrganizationName("ZomboidDay")
+
+    # Set application icon globally for the whole process
+    for icon_name in ("assets/icon.ico", "assets/icon.png"):
+        p = get_resource_path(icon_name)
+        if p.exists():
+            from PyQt6.QtGui import QIcon
+            app.setWindowIcon(QIcon(str(p)))
+            break
 
     # Load custom Project Zomboid font if available
     font_path = get_resource_path("font/FreckleFaceRegular.ttf")

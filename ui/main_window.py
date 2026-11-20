@@ -101,8 +101,13 @@ class MainWindow(QMainWindow):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
-        icon_path = get_resource_path("assets/icon.png")
-        self.app_icon = QIcon(str(icon_path)) if icon_path.exists() else QIcon()
+        # Load application icon (prefer .ico with multi-resolution for Windows, fallback to .png)
+        self.app_icon = QIcon()
+        for icon_name in ("assets/icon.ico", "assets/icon.png"):
+            p = get_resource_path(icon_name)
+            if p.exists():
+                self.app_icon = QIcon(str(p))
+                break
         self.setWindowIcon(self.app_icon)
 
         self.setStyleSheet(MODERN_DARK_THEME)
