@@ -211,16 +211,22 @@ class ProcessManager(QObject):
         if run_security_scan:
             modguard_path = game_dir / "PZ-ModGuard.bat"
             if modguard_path.exists():
-                self.sig_log.emit("Запуск швидкого сканування модів через PZ-ModGuard...")
+                self.sig_log.emit("🛡️ [PZ-ModGuard]: Запуск перевірки безпеки модів перед стартом гри...")
                 try:
-                    res = subprocess.run(
+                    proc = subprocess.Popen(
                         ["cmd.exe", "/c", str(modguard_path)],
                         cwd=str(game_dir),
-                        capture_output=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
                         text=True,
-                        timeout=30
+                        creationflags=subprocess.CREATE_NO_WINDOW
                     )
-                    self.sig_log.emit(f"[PZ-ModGuard]: {res.stdout.strip()}")
+                    for line in iter(proc.stdout.readline, ''):
+                        if line:
+                            self.sig_log.emit(f"[PZ-ModGuard]: {line.rstrip()}")
+                    proc.stdout.close()
+                    proc.wait()
+                    self.sig_log.emit("🛡️ [PZ-ModGuard]: Перевірку безпеки модів успішно завершено.")
                 except Exception as e:
                     self.sig_log.emit(f"[PZ-ModGuard попередження]: {e}")
 

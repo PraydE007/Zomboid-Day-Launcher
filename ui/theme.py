@@ -14,6 +14,11 @@ QWidget {
     selection-color: #000000;
 }
 
+QMainWindow, #CentralWidget {
+    background-color: transparent;
+    background: transparent;
+}
+
 /* Ensure all labels have transparent backgrounds by default */
 QLabel {
     background: transparent;

@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMessageBox, QButtonGroup, QGraphicsOpacityEffect
 )
 from PyQt6.QtCore import Qt, QPoint, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtGui import QIcon, QPixmap, QPainterPath, QRegion
 
 from core.config import ConfigManager
 from core.process_manager import ProcessManager
@@ -87,6 +87,7 @@ class CustomTitleBar(QWidget):
         else:
             self.win.showMaximized()
             self.btn_max.setText("❐")
+        self.win._update_window_shape()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -142,6 +143,8 @@ class MainWindow(QMainWindow):
     def _setup_ui(self):
         # Outermost container with border-radius (MainShell)
         central = QWidget(self)
+        central.setObjectName("CentralWidget")
+        central.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setCentralWidget(central)
         outer_layout = QVBoxLayout(central)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -330,7 +333,12 @@ class MainWindow(QMainWindow):
             return
 
         scan = self.config.get("scan_modguard_before_launch", True)
+        if scan:
+            self.tab_home.show_progress(35, t("modguard_scan_running", lang))
+            QApplication.processEvents()
+
         ok = self.proc_mgr.launch_game(is_debug=is_debug, run_security_scan=scan)
+        self.tab_home.hide_progress()
         if ok:
             self.tab_home.refresh_status()
             if self.config.hide_to_tray_on_start:
@@ -346,6 +354,39 @@ class MainWindow(QMainWindow):
 
     def _handle_settings_saved(self):
         self.tab_home.refresh_status()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._apply_native_corners()
+        self._update_window_shape()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_window_shape()
+
+    def _apply_native_corners(self):
+        """Enable native rounded corners on Windows 11 (DWM corner preference) if supported."""
+        try:
+            import ctypes
+            hwnd = int(self.winId())
+            # DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWMWCP_ROUND = 2
+            val = ctypes.c_int(2)
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 33, ctypes.byref(val), 4)
+        except Exception:
+            pass
+
+    def _update_window_shape(self):
+        """Apply physical rounded window mask so corners are cleanly rounded on Windows 10/11."""
+        if self.isMaximized():
+            self.clearMask()
+            self.shell.setStyleSheet("#MainShell { border-radius: 0px; border: none; }")
+            return
+
+        self.shell.setStyleSheet("")
+        radius = 14.0
+        path = QPainterPath()
+        path.addRoundedRect(0.0, 0.0, float(self.width()), float(self.height()), radius, radius)
+        self.setMask(QRegion(path.toFillPolygon().toPolygon()))
 
     def closeEvent(self, event):
         lang = self.config.language

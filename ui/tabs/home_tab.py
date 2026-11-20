@@ -251,16 +251,7 @@ class HomeTab(QWidget):
         self.btn_debug_start.clicked.connect(lambda: self.sig_start_clicked.emit(True))
         btn_row.addWidget(self.btn_debug_start)
 
-        # ModGuard Scan Button (Manual ModGuard Check)
-        self.btn_modguard = QPushButton(t("btn_modguard_scan", lang), self.hero)
-        self.btn_modguard.setProperty("class", "ModGuardButton")
-        self.btn_modguard.setMinimumHeight(48)
-        self.btn_modguard.setMinimumWidth(150)
-        self.btn_modguard.setToolTip(t("btn_modguard_tooltip", lang))
-        self.btn_modguard.clicked.connect(self._handle_modguard_scan)
-        btn_row.addWidget(self.btn_modguard)
-
-        # Refresh Button with Icon right after DEBUG MODE / MODGUARD
+        # Refresh Button with Icon right after DEBUG MODE
         self.btn_refresh = QPushButton("⟳", self.hero)
         self.btn_refresh.setProperty("class", "RefreshButton")
         self.btn_refresh.setFixedSize(48, 48)
@@ -327,48 +318,12 @@ class HomeTab(QWidget):
         dlg = DiagnosticsDialog(self.last_diag, self.config.language, self)
         dlg.exec()
 
-    def _handle_modguard_scan(self):
-        """User clicked manual ModGuard check: run async scan and stream logs to console."""
-        lang = self.config.language
-        self.btn_modguard.setEnabled(False)
-        self.btn_modguard.setText(t("btn_modguard_scanning", lang))
-        self.show_progress(10, t("modguard_scan_running", lang))
-
-        # Forward output to console tab if available
-        win = self.window()
-        if hasattr(win, "tab_console"):
-            win.tab_console.append_log("══════════════════════════════════════════════════")
-            win.tab_console.append_log("  РУЧНИЙ ЗАПУСК СКАНОРА БЕЗПЕКИ МОДІВ (PZ-MODGUARD)")
-            win.tab_console.append_log("══════════════════════════════════════════════════")
-
-        def _on_log(line: str):
-            if hasattr(self.window(), "tab_console"):
-                self.window().tab_console.append_log(line)
-
-        def _on_finished(success: bool, msg: str):
-            cur_lang = self.config.language
-            self.btn_modguard.setEnabled(True)
-            self.btn_modguard.setText(t("btn_modguard_scan", cur_lang))
-            self.hide_progress()
-            self.refresh_status()
-            if hasattr(self.window(), "tab_console"):
-                self.window().tab_console.append_log("══════════════════════════════════════════════════")
-                self.window().tab_console.append_log(f"  {t('modguard_scan_finished', cur_lang)}")
-                self.window().tab_console.append_log("══════════════════════════════════════════════════")
-
-        self._modguard_worker = self.proc_mgr.run_modguard_scan_async(
-            on_log=_on_log,
-            on_finished=_on_finished
-        )
-
     def retranslate_ui(self):
         lang = self.config.language
         self.lbl_subtitle.setText(t("subtitle", lang))
         self.btn_install.setText(t("btn_install", lang))
         self.btn_start.setText(t("btn_play", lang))
         self.btn_debug_start.setText(t("btn_debug", lang))
-        self.btn_modguard.setText(t("btn_modguard_scan", lang))
-        self.btn_modguard.setToolTip(t("btn_modguard_tooltip", lang))
         self.btn_refresh.setToolTip(t("btn_refresh_tooltip", lang))
         self.btn_diag.setText(f"🔍 {t('view_diagnostics', lang)}")
         self.banner_loc.setText(t("banner_launcher_not_in_game", lang))
@@ -437,14 +392,11 @@ class HomeTab(QWidget):
                 self.btn_install.setEnabled(True)
                 self.btn_start.setVisible(False)
                 self.btn_debug_start.setVisible(False)
-            self.btn_modguard.setVisible(True)
-            self.btn_modguard.setEnabled(True)
         elif not is_installed:
             self.btn_install.setVisible(True)
             self.btn_install.setEnabled(True)
             self.btn_start.setVisible(False)
             self.btn_debug_start.setVisible(False)
-            self.btn_modguard.setVisible(False)
         else:
             self.btn_install.setVisible(False)
             self.btn_start.setVisible(True)
@@ -453,8 +405,6 @@ class HomeTab(QWidget):
             self.btn_debug_start.setVisible(True)
             self.btn_debug_start.setEnabled(True)
             self.btn_debug_start.setToolTip("")
-            self.btn_modguard.setVisible(True)
-            self.btn_modguard.setEnabled(True)
 
     def show_progress(self, percentage: int, message: str):
         self.progress_bar.setVisible(True)
