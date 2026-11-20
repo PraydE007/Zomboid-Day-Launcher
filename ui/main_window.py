@@ -47,9 +47,9 @@ class CustomTitleBar(QWidget):
             layout.addWidget(lbl)
 
         # Title text using Freckle Face
-        lbl_title = QLabel("ZOMBOID DAY", self)
+        lbl_title = QLabel("ZOMBOID DAY PROJECT", self)
         lbl_title.setStyleSheet("""
-            color: #d4d4d4;
+            color: #22c55e;
             font-family: 'Freckle Face', sans-serif;
             font-size: 15px;
             letter-spacing: 1px;

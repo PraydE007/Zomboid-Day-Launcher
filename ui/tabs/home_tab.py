@@ -137,8 +137,7 @@ class HomeTab(QWidget):
         # ==============================================================
         self.lbl_title = QLabel(self.hero)
         self.lbl_title.setText(
-            '<span style="font-family:\'Freckle Face\',sans-serif; font-size:52px; color:#22c55e; font-weight:900;">ZOMBOID DAY</span> '
-            '<span style="font-family:\'Segoe UI\',sans-serif; font-size:26px; color:#ffffff; font-weight:800; letter-spacing:2px;">PROJECT</span>'
+            '<span style="font-family:\'Freckle Face\',sans-serif; font-size:50px; color:#22c55e; font-weight:900;">ZOMBOID DAY PROJECT</span>'
         )
         self.lbl_title.setStyleSheet("background: transparent; padding: 0; margin: 0;")
         
