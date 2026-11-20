@@ -143,11 +143,19 @@ class HomeTab(QWidget):
         # ==============================================================
         # 1. TOP-ANCHORED SECTION: Dynamic Styled Title & Diagnostics
         # ==============================================================
-        self.lbl_title = QLabel(self.hero)
-        self.lbl_title.setText(
-            '<span style="font-family:\'Freckle Face\',sans-serif; font-size:50px; color:#22c55e; font-weight:900;">ZOMBOID DAY PROJECT</span>'
-        )
-        self.lbl_title.setStyleSheet("background: transparent; padding: 0; margin: 0;")
+        self.lbl_title = QLabel("ZOMBOID DAY PROJECT", self.hero)
+        self.lbl_title.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.lbl_title.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+        self.lbl_title.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.lbl_title.setStyleSheet("""
+            color: #22c55e;
+            font-family: 'Freckle Face', sans-serif;
+            font-size: 50px;
+            font-weight: 900;
+            background: transparent;
+            padding: 0;
+            margin: 0;
+        """)
         overlay.addWidget(self.lbl_title)
 
         overlay.addSpacing(4)
@@ -155,6 +163,9 @@ class HomeTab(QWidget):
         # Subtitle / Tagline
         lang = self.config.language
         self.lbl_subtitle = QLabel(t("subtitle", lang), self.hero)
+        self.lbl_subtitle.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.lbl_subtitle.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+        self.lbl_subtitle.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.lbl_subtitle.setStyleSheet("""
             color: #d4d4d4;
             font-family: 'Segoe UI', -apple-system, sans-serif;

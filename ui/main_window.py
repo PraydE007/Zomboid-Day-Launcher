@@ -33,54 +33,32 @@ class CustomTitleBar(QWidget):
         super().__init__(parent_window)
         self.win = parent_window
         self.setObjectName("TitleBar")
-        self.setFixedHeight(38)
+        self.setFixedHeight(34)
         self._drag_pos = None
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        # App icon
-        icon_path = get_resource_path("assets/icon.png")
-        if icon_path.exists():
-            lbl = QLabel(self)
-            pix = QPixmap(str(icon_path)).scaled(
-                18, 18, Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            lbl.setPixmap(pix)
-            lbl.setStyleSheet("background: transparent;")
-            layout.addWidget(lbl)
-
-        # Title text using Freckle Face
-        self.lbl_title = QLabel("ZOMBOID DAY PROJECT", self)
-        self.lbl_title.setStyleSheet("""
-            color: #22c55e;
-            font-family: 'Freckle Face', sans-serif;
-            font-size: 15px;
-            letter-spacing: 1px;
-            background: transparent;
-        """)
-        layout.addWidget(self.lbl_title)
-
+        # Clean drag strip across the top (no icon, no title text)
         layout.addStretch()
 
         # Window controls: Minimize, Maximize, Close
         btn_min = QPushButton("−", self)
         btn_min.setObjectName("TitleButton")
-        btn_min.setFixedSize(36, 38)
+        btn_min.setFixedSize(36, 34)
         btn_min.clicked.connect(self.win.showMinimized)
         layout.addWidget(btn_min)
 
         self.btn_max = QPushButton("□", self)
         self.btn_max.setObjectName("TitleButton")
-        self.btn_max.setFixedSize(36, 38)
+        self.btn_max.setFixedSize(36, 34)
         self.btn_max.clicked.connect(self._toggle_maximize)
         layout.addWidget(self.btn_max)
 
         btn_close = QPushButton("✕", self)
         btn_close.setObjectName("CloseButton")
-        btn_close.setFixedSize(40, 38)
+        btn_close.setFixedSize(40, 34)
         btn_close.clicked.connect(self.win.close)
         layout.addWidget(btn_close)
 
