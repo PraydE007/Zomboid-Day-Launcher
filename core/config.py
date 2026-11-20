@@ -128,6 +128,7 @@ class ConfigManager:
             "game_dir": detect_steam_pz_path(),
             "user_zomboid_dir": detect_user_zomboid_dir(),
             "hero_image": get_default_hero_image(),
+            "language": "en",                    # Default English if not saved
             "hide_to_tray_on_start": True,       # Minimizes launcher to tray by default
             "show_external_cmd": False,           # Keeps cmd detached without external cmd window, logs to launcher
             "auto_check_updates": True,
@@ -187,6 +188,14 @@ class ConfigManager:
     @property
     def user_zomboid_dir(self) -> str:
         return self.data.get("user_zomboid_dir", "")
+
+    @property
+    def language(self) -> str:
+        return self.data.get("language", "en")
+
+    @language.setter
+    def language(self, val: str):
+        self.set("language", val)
 
     @property
     def hero_image(self) -> str:

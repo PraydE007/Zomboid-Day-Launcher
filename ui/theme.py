@@ -187,6 +187,34 @@ QPushButton.SecondaryButton:pressed {
     background: #171717;
 }
 
+/* ===== LANGUAGE SELECTOR (BOTTOM RIGHT) ===== */
+QComboBox#LangSelector {
+    background-color: rgba(20, 20, 20, 0.75);
+    color: #d4d4d4;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    padding: 8px 14px 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+QComboBox#LangSelector:hover {
+    border-color: #525252;
+    background-color: rgba(32, 32, 32, 0.9);
+    color: #ffffff;
+}
+QComboBox#LangSelector::drop-down {
+    border: none;
+    padding-right: 6px;
+}
+QComboBox#LangSelector QAbstractItemView {
+    background-color: #161616;
+    border: 1px solid #282828;
+    selection-background-color: #242424;
+    selection-color: #22c55e;
+    color: #f5f5f5;
+    padding: 4px;
+}
+
 /* ===== FORM CONTROLS ===== */
 QLineEdit, QComboBox, QSpinBox {
     background-color: #171717;

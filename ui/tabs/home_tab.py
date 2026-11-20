@@ -1,14 +1,15 @@
 """
 Home Tab — Clean hero layout with top-anchored title & top-aligned background image.
 Features a stylish, dynamic game title with 3D drop shadow, crystal clear transparent
-text overlays (no murky dark boxes), and stable non-breaking buttons.
+text overlays, stable non-breaking buttons, and a bottom-right language selector
+(defaulting to English if not saved).
 """
 from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QProgressBar, QSizePolicy, QGraphicsDropShadowEffect
+    QProgressBar, QSizePolicy, QGraphicsDropShadowEffect, QComboBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import (
@@ -17,6 +18,7 @@ from PyQt6.QtGui import (
 )
 
 from core.version_checker import VersionChecker
+from core.i18n import t
 
 
 class HeroBannerWidget(QWidget):
@@ -110,6 +112,7 @@ class HomeTab(QWidget):
     sig_install_clicked = pyqtSignal()
     sig_start_clicked = pyqtSignal(bool)   # True = debug
     sig_open_settings = pyqtSignal()
+    sig_language_changed = pyqtSignal(str)
 
     def __init__(self, config_manager, process_manager, parent=None):
         super().__init__(parent)
@@ -152,7 +155,8 @@ class HomeTab(QWidget):
         overlay.addSpacing(6)
 
         # Subtitle / Tagline
-        self.lbl_subtitle = QLabel("SURVIVAL CLIENT & MODPACK • BUILD 42+", self.hero)
+        lang = self.config.language
+        self.lbl_subtitle = QLabel(t("subtitle", lang), self.hero)
         self.lbl_subtitle.setStyleSheet("""
             color: #d4d4d4;
             font-family: 'Segoe UI', -apple-system, sans-serif;
@@ -171,7 +175,7 @@ class HomeTab(QWidget):
         overlay.addSpacing(12)
 
         # Version Pill Badge (clean glass style with no dark box)
-        self.badge_version = QLabel("Перевірка версії...", self.hero)
+        self.badge_version = QLabel(t("checking_version", lang), self.hero)
         self.badge_version.setFixedHeight(24)
         self.badge_version.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self.badge_version.setStyleSheet("""
@@ -191,36 +195,55 @@ class HomeTab(QWidget):
         overlay.addStretch()
 
         # ==============================================================
-        # 2. BOTTOM-ANCHORED SECTION: Action buttons & progress
+        # 2. BOTTOM-ANCHORED SECTION: Action buttons & Language Selector
         # ==============================================================
         btn_row = QHBoxLayout()
         btn_row.setSpacing(12)
 
         # Install Button
-        self.btn_install = QPushButton("ВСТАНОВИТИ", self.hero)
+        self.btn_install = QPushButton(t("btn_install", lang), self.hero)
         self.btn_install.setProperty("class", "PrimaryButton")
         self.btn_install.setMinimumHeight(48)
-        self.btn_install.setMinimumWidth(200)
+        self.btn_install.setMinimumWidth(190)
         self.btn_install.clicked.connect(self.sig_install_clicked.emit)
         btn_row.addWidget(self.btn_install)
 
         # Play Button
-        self.btn_start = QPushButton("ГРАТИ", self.hero)
+        self.btn_start = QPushButton(t("btn_play", lang), self.hero)
         self.btn_start.setProperty("class", "PrimaryButton")
         self.btn_start.setMinimumHeight(48)
-        self.btn_start.setMinimumWidth(200)
+        self.btn_start.setMinimumWidth(190)
         self.btn_start.clicked.connect(lambda: self.sig_start_clicked.emit(False))
         btn_row.addWidget(self.btn_start)
 
         # Debug Button
-        self.btn_debug_start = QPushButton("DEBUG", self.hero)
+        self.btn_debug_start = QPushButton(t("btn_debug", lang), self.hero)
         self.btn_debug_start.setProperty("class", "DebugButton")
         self.btn_debug_start.setMinimumHeight(48)
-        self.btn_debug_start.setMinimumWidth(110)
+        self.btn_debug_start.setMinimumWidth(100)
         self.btn_debug_start.clicked.connect(lambda: self.sig_start_clicked.emit(True))
         btn_row.addWidget(self.btn_debug_start)
 
         btn_row.addStretch()
+
+        # Language Selector at bottom right
+        self.combo_lang = QComboBox(self.hero)
+        self.combo_lang.setObjectName("LangSelector")
+        self.combo_lang.setMinimumHeight(42)
+        self.combo_lang.setMinimumWidth(115)
+        self.combo_lang.addItem("English", "en")
+        self.combo_lang.addItem("Українська", "uk")
+
+        # Default is English ("en") if not already saved
+        idx = self.combo_lang.findData(self.config.language)
+        if idx >= 0:
+            self.combo_lang.setCurrentIndex(idx)
+        else:
+            self.combo_lang.setCurrentIndex(0)
+
+        self.combo_lang.currentIndexChanged.connect(self._on_lang_changed)
+        btn_row.addWidget(self.combo_lang)
+
         overlay.addLayout(btn_row)
 
         overlay.addSpacing(10)
@@ -241,15 +264,31 @@ class HomeTab(QWidget):
 
         root.addWidget(self.hero)
 
+    def _on_lang_changed(self):
+        new_lang = self.combo_lang.currentData()
+        if new_lang and new_lang != self.config.language:
+            self.config.language = new_lang
+            self.sig_language_changed.emit(new_lang)
+            self.retranslate_ui()
+
+    def retranslate_ui(self):
+        lang = self.config.language
+        self.lbl_subtitle.setText(t("subtitle", lang))
+        self.btn_install.setText(t("btn_install", lang))
+        self.btn_start.setText(t("btn_play", lang))
+        self.btn_debug_start.setText(t("btn_debug", lang))
+        self.refresh_status()
+
     def refresh_status(self):
-        status = self.version_checker.check_status()
+        lang = self.config.language
+        status = self.version_checker.check_status(lang)
         is_installed = status["is_installed"]
         color = status["color"]
         text = status["text"]
         ver = str(status.get("version", "")).strip().lstrip("v")
 
-        # Format cleanly: "Актуальна • v1.0.0"
-        if is_installed and ver and ver not in ["—", "Не встановлено", "Помилка"]:
+        # Format cleanly: "Up to date • v1.0.0"
+        if is_installed and ver and ver not in ["—", "Not installed", "Не встановлено", "Error", "Помилка"]:
             badge_text = f"{text} • v{ver}"
         else:
             badge_text = text

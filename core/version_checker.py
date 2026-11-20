@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from core.manifest_parser import ManifestParser
+from core.i18n import t
 
 
 class VersionStatus:
@@ -15,16 +16,19 @@ class VersionChecker:
     def __init__(self, config_manager):
         self.config = config_manager
 
-    def check_status(self) -> Dict[str, Any]:
+    def check_status(self, lang: Optional[str] = None) -> Dict[str, Any]:
+        if lang is None:
+            lang = self.config.language
+
         game_dir_str = self.config.game_dir
         if not game_dir_str or not Path(game_dir_str).exists():
             return {
                 "status": VersionStatus.GAME_NOT_FOUND,
                 "version": "",
-                "text": "Папку гри не знайдено",
+                "text": t("status_game_not_found", lang),
                 "color": "#ef4444",  # Red
                 "is_installed": False,
-                "missing_files": ["Папка гри не існує"]
+                "missing_files": ["Game folder does not exist"]
             }
 
         game_dir = Path(game_dir_str)
@@ -41,7 +45,6 @@ class VersionChecker:
         # Check main repo manifest for required files & version
         target_manifest = None
 
-        # Check local path of first repo or cached repo
         repos = self.config.repositories
         for r in repos:
             if r.get("has_manifest"):
@@ -55,7 +58,6 @@ class VersionChecker:
                     break
 
         if not target_manifest:
-            # Fallback check standard files
             standard_required = [
                 game_dir / "ProjectZomboid64.bat",
                 game_dir / "ProjectZomboid64ShowConsole.bat",
@@ -69,7 +71,7 @@ class VersionChecker:
                 return {
                     "status": VersionStatus.NOT_INSTALLED,
                     "version": "",
-                    "text": "Не встановлено",
+                    "text": t("status_not_installed", lang),
                     "color": "#ef4444",
                     "is_installed": False,
                     "missing_files": missing
@@ -77,13 +79,12 @@ class VersionChecker:
             return {
                 "status": VersionStatus.UP_TO_DATE,
                 "version": installed_ver,
-                "text": "Актуальна",
+                "text": t("status_up_to_date", lang),
                 "color": "#22c55e",  # Green
                 "is_installed": True,
                 "missing_files": []
             }
 
-        # Validate with manifest
         try:
             parser = ManifestParser(target_manifest, context)
             is_valid, missing = parser.validate_installation()
@@ -94,7 +95,7 @@ class VersionChecker:
                 return {
                     "status": VersionStatus.NOT_INSTALLED,
                     "version": manifest_version,
-                    "text": "Не встановлено",
+                    "text": t("status_not_installed", lang),
                     "color": "#ef4444",
                     "is_installed": False,
                     "missing_files": missing
@@ -104,7 +105,7 @@ class VersionChecker:
                 return {
                     "status": VersionStatus.UPDATE_AVAILABLE,
                     "version": manifest_version,
-                    "text": f"Доступне оновлення (v{manifest_version})",
+                    "text": f"{t('status_update_available', lang)} (v{manifest_version})",
                     "color": "#f59e0b",  # Amber
                     "is_installed": True,
                     "missing_files": []
@@ -113,7 +114,7 @@ class VersionChecker:
             return {
                 "status": VersionStatus.UP_TO_DATE,
                 "version": manifest_version,
-                "text": "Актуальна",
+                "text": t("status_up_to_date", lang),
                 "color": "#22c55e",  # Green
                 "is_installed": True,
                 "missing_files": []
@@ -122,7 +123,7 @@ class VersionChecker:
             return {
                 "status": VersionStatus.NOT_INSTALLED,
                 "version": "",
-                "text": f"Помилка маніфесту: {e}",
+                "text": f"{t('error', lang)}: {e}",
                 "color": "#ef4444",
                 "is_installed": False,
                 "missing_files": [str(e)]

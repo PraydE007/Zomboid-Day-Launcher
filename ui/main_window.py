@@ -1,5 +1,6 @@
 """
-Main Window — Frameless dark launcher shell with rounded corners and smooth tab fades.
+Main Window — Frameless dark launcher shell with rounded corners, smooth tab fades,
+and dynamic multi-language localization.
 """
 import sys
 from pathlib import Path
@@ -16,6 +17,7 @@ from core.config import ConfigManager
 from core.process_manager import ProcessManager
 from core.installer import InstallWorker
 from core.utils import get_resource_path
+from core.i18n import t
 from ui.theme import MODERN_DARK_THEME
 from ui.tabs.home_tab import HomeTab
 from ui.tabs.settings_tab import SettingsTab
@@ -47,15 +49,15 @@ class CustomTitleBar(QWidget):
             layout.addWidget(lbl)
 
         # Title text using Freckle Face
-        lbl_title = QLabel("ZOMBOID DAY PROJECT", self)
-        lbl_title.setStyleSheet("""
+        self.lbl_title = QLabel("ZOMBOID DAY PROJECT", self)
+        self.lbl_title.setStyleSheet("""
             color: #22c55e;
             font-family: 'Freckle Face', sans-serif;
             font-size: 15px;
             letter-spacing: 1px;
             background: transparent;
         """)
-        layout.addWidget(lbl_title)
+        layout.addWidget(self.lbl_title)
 
         layout.addStretch()
 
@@ -122,6 +124,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(MODERN_DARK_THEME)
         self._setup_ui()
         self._setup_system_tray()
+        self.retranslate_ui()
 
     def _setup_ui(self):
         # Outermost container with border-radius (MainShell)
@@ -151,7 +154,8 @@ class MainWindow(QMainWindow):
         self.btn_group = QButtonGroup(self)
         self.btn_group.setExclusive(True)
 
-        tab_names = ["Головна", "Налаштування", "Консоль"]
+        lang = self.config.language
+        tab_names = [t("nav_home", lang), t("nav_settings", lang), t("nav_console", lang)]
         self.nav_buttons = []
         for idx, name in enumerate(tab_names):
             btn = QPushButton(name, nav)
@@ -183,6 +187,7 @@ class MainWindow(QMainWindow):
         self.btn_group.idClicked.connect(self._on_tab_changed)
         self.tab_home.sig_install_clicked.connect(self._handle_install)
         self.tab_home.sig_start_clicked.connect(self._handle_start)
+        self.tab_home.sig_language_changed.connect(self._handle_language_changed)
         self.tab_settings.sig_settings_saved.connect(self._handle_settings_saved)
         self.tab_settings.sig_hero_image_changed.connect(self.tab_home.hero.set_image)
 
@@ -205,11 +210,28 @@ class MainWindow(QMainWindow):
         anim.setEasingCurve(QEasingCurve.Type.OutCubic)
         anim.start(QPropertyAnimation.DeletionPolicy.DeleteWhenStopped)
 
+    def _handle_language_changed(self, lang: str):
+        self.retranslate_ui()
+
+    def retranslate_ui(self):
+        lang = self.config.language
+        tab_keys = ["nav_home", "nav_settings", "nav_console"]
+        for idx, key in enumerate(tab_keys):
+            if idx < len(self.nav_buttons):
+                self.nav_buttons[idx].setText(t(key, lang))
+
+        self.tab_home.retranslate_ui()
+        self._setup_system_tray()
+
     def _setup_system_tray(self):
-        self.tray_icon = QSystemTrayIcon(self)
-        if not self.app_icon.isNull():
-            self.tray_icon.setIcon(self.app_icon)
-        self.tray_icon.setToolTip("Zomboid Day Launcher")
+        lang = self.config.language
+        if not hasattr(self, "tray_icon"):
+            self.tray_icon = QSystemTrayIcon(self)
+            if not self.app_icon.isNull():
+                self.tray_icon.setIcon(self.app_icon)
+            self.tray_icon.setToolTip("Zomboid Day Launcher")
+            self.tray_icon.activated.connect(self._on_tray_activated)
+            self.tray_icon.show()
 
         menu = QMenu()
         menu.setStyleSheet("""
@@ -235,16 +257,14 @@ class MainWindow(QMainWindow):
             }
         """)
 
-        menu.addAction("Показати лаунчер", self._restore_from_tray)
+        menu.addAction(t("tray_show", lang), self._restore_from_tray)
         menu.addSeparator()
-        menu.addAction("Запустити гру", lambda: self._handle_start(False))
-        menu.addAction("Debug запуск", lambda: self._handle_start(True))
+        menu.addAction(t("tray_start", lang), lambda: self._handle_start(False))
+        menu.addAction(t("tray_debug", lang), lambda: self._handle_start(True))
         menu.addSeparator()
-        menu.addAction("Вийти", QApplication.instance().quit)
+        menu.addAction(t("tray_exit", lang), QApplication.instance().quit)
 
         self.tray_icon.setContextMenu(menu)
-        self.tray_icon.activated.connect(self._on_tray_activated)
-        self.tray_icon.show()
 
     def _on_tray_activated(self, reason):
         if reason in (
@@ -259,12 +279,13 @@ class MainWindow(QMainWindow):
         self.raise_()
 
     def _handle_install(self):
+        lang = self.config.language
         if self.install_worker and self.install_worker.isRunning():
-            QMessageBox.information(self, "Інформація", "Встановлення вже виконується.")
+            QMessageBox.information(self, t("info", lang), t("install_in_progress", lang))
             return
 
         self.tab_home.btn_install.setEnabled(False)
-        self.tab_home.show_progress(5, "Підготовка...")
+        self.tab_home.show_progress(5, t("install_prep", lang))
 
         self.install_worker = InstallWorker(self.config, self)
         self.install_worker.sig_progress.connect(self.tab_home.show_progress)
@@ -273,38 +294,41 @@ class MainWindow(QMainWindow):
         self.install_worker.start()
 
     def _on_install_finished(self, success: bool, message: str):
+        lang = self.config.language
         self.tab_home.btn_install.setEnabled(True)
         self.tab_home.hide_progress()
         self.tab_home.refresh_status()
         if success:
-            QMessageBox.information(self, "Готово", message)
+            QMessageBox.information(self, t("done", lang), message)
         else:
-            QMessageBox.critical(self, "Помилка", message)
+            QMessageBox.critical(self, t("error", lang), message)
 
     def _handle_start(self, is_debug: bool):
+        lang = self.config.language
         scan = self.config.get("scan_modguard_before_launch", False)
         ok = self.proc_mgr.launch_game(is_debug=is_debug, run_security_scan=scan)
         if ok:
             self.tab_home.refresh_status()
             if self.config.hide_to_tray_on_start:
                 self.hide()
-                mode = "Debug" if is_debug else "Стандартний"
+                mode = "Debug" if is_debug else ("Standard" if lang == "en" else "Стандартний")
                 self.tray_icon.showMessage(
-                    "Гру запущено",
-                    f"{mode} запуск виконано. Лаунчер згорнуто.",
+                    t("tray_game_started_title", lang),
+                    t("tray_game_started_msg", lang, mode=mode),
                     QSystemTrayIcon.MessageIcon.Information, 3000,
                 )
         else:
-            QMessageBox.critical(self, "Помилка", "Не вдалося запустити гру.")
+            QMessageBox.critical(self, t("error", lang), "Failed to start game." if lang == "en" else "Не вдалося запустити гру.")
 
     def _handle_settings_saved(self):
         self.tab_home.refresh_status()
 
     def closeEvent(self, event):
+        lang = self.config.language
         if self.proc_mgr.is_game_running():
             reply = QMessageBox.question(
-                self, "Закриття",
-                "Гра працює у фоні. Згорнути в трей?",
+                self, t("tray_exit", lang),
+                t("game_running_close_confirm", lang),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
             )
             if reply == QMessageBox.StandardButton.Yes:
