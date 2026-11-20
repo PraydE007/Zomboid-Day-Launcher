@@ -197,6 +197,97 @@ class StyledTitleWidget(QWidget):
             painter.drawText(0, sub_y, self.subtitle_text)
 
 
+# Button Styles for Main Actions (Explicit QSS ensures 100% reliable background fill in Qt6)
+STYLE_PLAY_READY = """
+QPushButton#btn_start {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #22c55e, stop:1 #16a34a);
+    color: #ffffff;
+    border: 1px solid #15803d;
+    border-radius: 6px;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 12px 30px;
+    text-align: center;
+}
+QPushButton#btn_start:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4ade80, stop:1 #22c55e);
+    border-color: #4ade80;
+}
+QPushButton#btn_start:pressed {
+    background: #15803d;
+}
+"""
+
+STYLE_PLAY_FIX = """
+QPushButton#btn_start {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ef4444, stop:1 #dc2626);
+    color: #ffffff;
+    border: 1px solid #b91c1c;
+    border-radius: 6px;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    padding: 12px 30px;
+    text-align: center;
+}
+QPushButton#btn_start:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f87171, stop:1 #ef4444);
+    border-color: #f87171;
+}
+QPushButton#btn_start:pressed {
+    background: #b91c1c;
+}
+"""
+
+STYLE_DEBUG_BTN = """
+QPushButton#btn_debug_start {
+    background-color: rgba(30, 30, 30, 0.90);
+    color: #e4e4e7;
+    border: 1px solid #444444;
+    border-radius: 6px;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 12px 24px;
+    text-align: center;
+}
+QPushButton#btn_debug_start:hover {
+    color: #ffffff;
+    border-color: #666666;
+    background-color: rgba(50, 50, 50, 0.95);
+}
+QPushButton#btn_debug_start:pressed {
+    background-color: #181818;
+}
+QPushButton#btn_debug_start:disabled {
+    background-color: rgba(20, 20, 20, 0.50);
+    color: #52525b;
+    border-color: #27272a;
+}
+"""
+
+STYLE_REFRESH_BTN = """
+QPushButton#btn_refresh {
+    background-color: rgba(30, 30, 30, 0.90);
+    color: #22c55e;
+    border: 1px solid #383838;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 800;
+}
+QPushButton#btn_refresh:hover {
+    color: #ffffff;
+    border-color: #22c55e;
+    background-color: rgba(34, 197, 94, 0.20);
+}
+QPushButton#btn_refresh:pressed {
+    background-color: rgba(34, 197, 94, 0.35);
+}
+"""
+
+
 class HomeTab(QWidget):
     sig_install_clicked = pyqtSignal()
     sig_start_clicked = pyqtSignal(bool)   # True = debug
@@ -333,7 +424,8 @@ class HomeTab(QWidget):
         # Play / Fix Button (Green = PLAY, Red = FIX)
         self.can_play = False
         self.btn_start = QPushButton(t("btn_play", lang), self.hero)
-        self.btn_start.setProperty("class", "PrimaryButton")
+        self.btn_start.setObjectName("btn_start")
+        self.btn_start.setStyleSheet(STYLE_PLAY_READY)
         self.btn_start.setMinimumHeight(48)
         self.btn_start.setMinimumWidth(180)
         self.btn_start.clicked.connect(self._handle_main_action_clicked)
@@ -341,7 +433,8 @@ class HomeTab(QWidget):
 
         # Debug Mode Button (Renamed to DEBUG MODE)
         self.btn_debug_start = QPushButton(t("btn_debug", lang), self.hero)
-        self.btn_debug_start.setProperty("class", "DebugButton")
+        self.btn_debug_start.setObjectName("btn_debug_start")
+        self.btn_debug_start.setStyleSheet(STYLE_DEBUG_BTN)
         self.btn_debug_start.setMinimumHeight(48)
         self.btn_debug_start.setMinimumWidth(130)
         self.btn_debug_start.clicked.connect(lambda: self.sig_start_clicked.emit(True))
@@ -349,7 +442,8 @@ class HomeTab(QWidget):
 
         # Refresh Button with Icon right after DEBUG MODE
         self.btn_refresh = QPushButton("⟳", self.hero)
-        self.btn_refresh.setProperty("class", "RefreshButton")
+        self.btn_refresh.setObjectName("btn_refresh")
+        self.btn_refresh.setStyleSheet(STYLE_REFRESH_BTN)
         self.btn_refresh.setFixedSize(48, 48)
         self.btn_refresh.setToolTip(t("btn_refresh_tooltip", lang))
         self.btn_refresh.clicked.connect(self._handle_manual_refresh)
@@ -432,8 +526,10 @@ class HomeTab(QWidget):
         self.btn_install.setText(t("btn_install", lang))
         if getattr(self, "can_play", False):
             self.btn_start.setText(t("btn_play", lang))
+            self.btn_start.setStyleSheet(STYLE_PLAY_READY)
         else:
             self.btn_start.setText("FIX")
+            self.btn_start.setStyleSheet(STYLE_PLAY_FIX)
         self.btn_debug_start.setText(t("btn_debug", lang))
         self.btn_refresh.setToolTip(t("btn_refresh_tooltip", lang))
         self.btn_diag.setText(f"🔍 {t('view_diagnostics', lang)}")
@@ -489,12 +585,14 @@ class HomeTab(QWidget):
 
         if self.can_play:
             self.btn_start.setText(t("btn_play", lang))
+            self.btn_start.setStyleSheet(STYLE_PLAY_READY)
             self.btn_start.setProperty("status", "ready")
             self.btn_start.setToolTip("")
             self.btn_debug_start.setEnabled(True)
             self.btn_debug_start.setToolTip("")
         else:
             self.btn_start.setText("FIX")
+            self.btn_start.setStyleSheet(STYLE_PLAY_FIX)
             self.btn_start.setProperty("status", "fix")
             if is_invalid_placement:
                 self.btn_start.setToolTip(t("banner_launcher_not_in_game", lang))
@@ -505,8 +603,6 @@ class HomeTab(QWidget):
             self.btn_debug_start.setEnabled(False)
             self.btn_debug_start.setToolTip(t("err_launch_prohibited_tooltip", lang))
 
-        self.btn_start.style().unpolish(self.btn_start)
-        self.btn_start.style().polish(self.btn_start)
         self.btn_start.setVisible(True)
         self.btn_start.setEnabled(True)
         self.btn_install.setVisible(False)
