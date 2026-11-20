@@ -330,12 +330,13 @@ class HomeTab(QWidget):
         self.btn_install.clicked.connect(self.sig_install_clicked.emit)
         btn_row.addWidget(self.btn_install)
 
-        # Play Button
+        # Play / Fix Button (Green = PLAY, Red = FIX)
+        self.can_play = False
         self.btn_start = QPushButton(t("btn_play", lang), self.hero)
         self.btn_start.setProperty("class", "PrimaryButton")
         self.btn_start.setMinimumHeight(48)
         self.btn_start.setMinimumWidth(180)
-        self.btn_start.clicked.connect(lambda: self.sig_start_clicked.emit(False))
+        self.btn_start.clicked.connect(self._handle_main_action_clicked)
         btn_row.addWidget(self.btn_start)
 
         # Debug Mode Button (Renamed to DEBUG MODE)
@@ -407,6 +408,19 @@ class HomeTab(QWidget):
         self.refresh_status()
         QTimer.singleShot(350, lambda: self.btn_refresh.setText("⟳"))
 
+    def _handle_main_action_clicked(self):
+        if getattr(self, "can_play", False):
+            self.sig_start_clicked.emit(False)
+        else:
+            lang = self.config.language
+            status = self.version_checker.check_status(lang)
+            if status.get("status") == "INVALID_PLACEMENT":
+                self._open_diagnostics()
+            elif not status.get("is_installed"):
+                self.sig_install_clicked.emit()
+            else:
+                self.sig_install_clicked.emit()
+
     def _open_diagnostics(self):
         dlg = DiagnosticsDialog(self.detector, self.config, self.config.language, self.window())
         dlg.exec()
@@ -416,7 +430,10 @@ class HomeTab(QWidget):
         lang = self.config.language
         self.lbl_subtitle.setText(t("subtitle", lang))
         self.btn_install.setText(t("btn_install", lang))
-        self.btn_start.setText(t("btn_play", lang))
+        if getattr(self, "can_play", False):
+            self.btn_start.setText(t("btn_play", lang))
+        else:
+            self.btn_start.setText("FIX")
         self.btn_debug_start.setText(t("btn_debug", lang))
         self.btn_refresh.setToolTip(t("btn_refresh_tooltip", lang))
         self.btn_diag.setText(f"🔍 {t('view_diagnostics', lang)}")
@@ -445,11 +462,12 @@ class HomeTab(QWidget):
 
         # 2. Version badge & status
         is_installed = status["is_installed"]
+        is_update = (status.get("status") == "UPDATE_AVAILABLE")
         color = status["color"]
         text = status["text"]
         ver = str(status.get("version", "")).strip().lstrip("v")
 
-        # Format cleanly: "Up to date • v1.0.0"
+        # Format cleanly: "Up to date • v1.0.1" or "Update • v1.0.0 → v1.0.1"
         if is_installed and ver and ver not in ["—", "Not installed", "Не встановлено", "Error", "Помилка"]:
             badge_text = f"{text} • v{ver}"
         else:
@@ -466,39 +484,33 @@ class HomeTab(QWidget):
             font-weight: 600;
         """)
 
-        # Button toggles and state controls
-        game_dir = Path(self.config.game_dir)
-        scripts_installed = (game_dir / "ProjectZomboid64.bat").exists()
+        # 3. Main Action Button: Green PLAY if ready, Red FIX if not ready
+        self.can_play = is_installed and (not is_invalid_placement) and (not is_update)
 
-        if is_invalid_placement:
-            # Launcher is running outside the game directory: game launch is strictly prohibited!
-            if scripts_installed:
-                # Game files are present in target directory, but launcher is misplaced
-                self.btn_install.setVisible(False)
-                self.btn_start.setVisible(True)
-                self.btn_start.setEnabled(False)
-                self.btn_start.setToolTip(t("err_launch_prohibited_tooltip", lang))
-                self.btn_debug_start.setVisible(True)
-                self.btn_debug_start.setEnabled(False)
-                self.btn_debug_start.setToolTip(t("err_launch_prohibited_tooltip", lang))
-            else:
-                self.btn_install.setVisible(True)
-                self.btn_install.setEnabled(True)
-                self.btn_start.setVisible(False)
-                self.btn_debug_start.setVisible(False)
-        elif not is_installed:
-            self.btn_install.setVisible(True)
-            self.btn_install.setEnabled(True)
-            self.btn_start.setVisible(False)
-            self.btn_debug_start.setVisible(False)
-        else:
-            self.btn_install.setVisible(False)
-            self.btn_start.setVisible(True)
-            self.btn_start.setEnabled(True)
+        if self.can_play:
+            self.btn_start.setText(t("btn_play", lang))
+            self.btn_start.setProperty("status", "ready")
             self.btn_start.setToolTip("")
-            self.btn_debug_start.setVisible(True)
             self.btn_debug_start.setEnabled(True)
             self.btn_debug_start.setToolTip("")
+        else:
+            self.btn_start.setText("FIX")
+            self.btn_start.setProperty("status", "fix")
+            if is_invalid_placement:
+                self.btn_start.setToolTip(t("banner_launcher_not_in_game", lang))
+            elif is_update:
+                self.btn_start.setToolTip(f"{t('status_update_available', lang)} • Натисніть FIX для оновлення")
+            else:
+                self.btn_start.setToolTip(t("btn_install", lang))
+            self.btn_debug_start.setEnabled(False)
+            self.btn_debug_start.setToolTip(t("err_launch_prohibited_tooltip", lang))
+
+        self.btn_start.style().unpolish(self.btn_start)
+        self.btn_start.style().polish(self.btn_start)
+        self.btn_start.setVisible(True)
+        self.btn_start.setEnabled(True)
+        self.btn_install.setVisible(False)
+        self.btn_debug_start.setVisible(True)
 
     def show_progress(self, percentage: int, message: str):
         self.progress_bar.setVisible(True)

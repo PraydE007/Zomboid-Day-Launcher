@@ -131,6 +131,27 @@ class SystemDetector:
             )
         })
 
+        # 7. Modpack Manifest & Version Match (Repo vs Launcher)
+        from core.version_checker import VersionChecker, VersionStatus
+        vc = VersionChecker(self.config)
+        ver_info = vc.check_status(lang)
+        repo_v = ver_info.get("repo_version", "1.0.1")
+        inst_v = ver_info.get("installed_version") or self.config.get("installed_version", "")
+        ver_status = ver_info.get("status")
+        v_ok = (ver_status == VersionStatus.UP_TO_DATE)
+
+        checks.append({
+            "id": "version_match",
+            "title": t("chk_version_match", lang),
+            "status": "ok" if v_ok else "warn",
+            "passed": v_ok,
+            "details": (
+                (f"Синхронізовано з репозиторієм: v{repo_v}" if lang == "uk" else f"Synced with repository: v{repo_v}")
+                if v_ok else
+                (f"Встановлена: v{inst_v or '—'} • На репозиторії: v{repo_v}" if lang == "uk" else f"Installed: v{inst_v or '—'} • Repository: v{repo_v}")
+            )
+        })
+
         # Calculate scores
         passed_count = sum(1 for c in checks if c["passed"])
         total_count = len(checks)

@@ -382,21 +382,16 @@ class MainWindow(QMainWindow):
         if (not is_clean) or code == 20 or len(threats) > 0:
             self.tab_home.hide_launch_spinner()
 
-            details_list = threats[:6]
-            if len(threats) > 6:
-                details_list.append(f"... (+ {len(threats) - 6} more threats in Console)")
-            details_str = "\n".join(details_list) if details_list else summary
-
             self.tab_console.append_log("⛔ [КРИТИЧНА ЗАГРОЗА БЕЗПЕКИ]: ЗАПУСК ГРИ ПРИМУСОВО СКАСОВАНО!")
             self.tab_console.append_log(f"   Код результату: {code}")
             for t_item in threats:
                 self.tab_console.append_log(f"   -> {t_item}")
 
-            QMessageBox.critical(
-                self,
-                t("err_modguard_critical_title", lang),
-                t("err_modguard_critical_msg", lang, details=details_str)
-            )
+            from ui.dialogs.threat_dialog import ThreatDialog
+            raw_lines = self.tab_console.terminal.toPlainText().splitlines()[-40:] if hasattr(self.tab_console, "terminal") else threats
+            dlg = ThreatDialog(raw_logs=raw_lines, threats=threats, lang=lang, parent=self)
+            dlg.sig_rescan_requested.connect(lambda: self._on_start_clicked(is_debug))
+            dlg.exec()
             return
 
         # Scan clean: if Profile 2 was executed, remember successful full scan

@@ -177,6 +177,10 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "en": "PZ-ModGuard Security Scanner",
         "uk": "PZ-ModGuard сканер безпеки"
     },
+    "chk_version_match": {
+        "en": "Target Version (Launcher vs Repository)",
+        "uk": "Таргет версія (Лаунчер vs Репозиторій)"
+    },
     "chk_user_profile": {
         "en": "User Zomboid Profile (Mods & Saves)",
         "uk": "Папка профілю Zomboid (Моди та збереження)"

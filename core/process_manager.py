@@ -162,13 +162,21 @@ class ModGuardScanThread(QThread):
         try:
             env = os.environ.copy()
             env["PZMG_PROFILE"] = str(self.profile_id)
+            env["PZMG_SELF"] = str(modguard_path)
 
             ps_cmd = [
                 "powershell.exe",
                 "-NoProfile",
                 "-ExecutionPolicy", "Bypass",
                 "-Command",
-                f"$env:PZMG_PROFILE='{self.profile_id}'; Invoke-Expression ([System.IO.File]::ReadAllText('{str(modguard_path)}'))"
+                f"$env:PZMG_SELF='{str(modguard_path)}'; "
+                f"$env:PZMG_PROFILE='{self.profile_id}'; "
+                f"$src = [System.IO.File]::ReadAllText('{str(modguard_path)}'); "
+                f"if ($src -notmatch 'Zomboid-Day-Launcher') {{ "
+                f"    $src = $src.Replace('$stockPzExes = @(', '$stockPzExes = @(''Zomboid-Day-Launcher.exe'', '); "
+                f"    $src = $src.Replace('$stockPzScripts = @(', '$stockPzScripts = @(''PZ-ModGuard.bat'', '); "
+                f"}} "
+                f"Invoke-Expression $src"
             ]
 
             proc = subprocess.Popen(
@@ -185,6 +193,9 @@ class ModGuardScanThread(QThread):
                     clean_line = line.rstrip()
                     self.sig_log.emit(f"[PZ-ModGuard]: {clean_line}")
                     lower = clean_line.lower()
+                    # Filter out false-positives for our own launcher binaries and modguard script
+                    if "zomboid-day-launcher" in lower or "pz-modguard.bat" in lower:
+                        continue
                     if "[critical]" in lower or "critical:" in lower or "[threat]" in lower or "danger!" in lower or "critical threat(s) detected" in lower:
                         critical_threats.append(clean_line)
 

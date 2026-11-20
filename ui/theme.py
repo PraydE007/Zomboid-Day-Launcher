@@ -204,6 +204,21 @@ QPushButton.PrimaryButton:disabled {
     color: #525252;
 }
 
+/* Red FIX Button state when game cannot be launched */
+QPushButton.PrimaryButton[status="fix"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ef4444, stop:1 #dc2626);
+    color: #ffffff;
+    border: none;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+QPushButton.PrimaryButton[status="fix"]:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f87171, stop:1 #ef4444);
+}
+QPushButton.PrimaryButton[status="fix"]:pressed {
+    background: #b91c1c;
+}
+
 QPushButton.DebugButton {
     background: rgba(22, 22, 22, 0.7);
     color: #d4d4d4;
