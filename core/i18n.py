@@ -69,6 +69,46 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "en": "PZ-ModGuard scan complete. See Console tab.",
         "uk": "Сканування PZ-ModGuard завершено. Деталі в консолі."
     },
+    "scan_profile_full": {
+        "en": "Full Deep Scan",
+        "uk": "Повний глибокий аудит"
+    },
+    "scan_profile_quick": {
+        "en": "Quick Scan",
+        "uk": "Швидка перевірка модів"
+    },
+    "scan_reason_first": {
+        "en": "First launch (full security audit)",
+        "uk": "Перший запуск (первинний аудит безпеки)"
+    },
+    "scan_reason_periodic": {
+        "en": "Periodic 7-day security audit",
+        "uk": "Плановий аудит (раз на 7 днів)"
+    },
+    "scan_reason_updated": {
+        "en": "Game files or mods updated",
+        "uk": "Виявлено оновлення або зміну файлів чи модів"
+    },
+    "scan_reason_routine": {
+        "en": "Routine mods verification",
+        "uk": "Експрес-перевірка встановлених модів"
+    },
+    "launching_game": {
+        "en": "Starting Project Zomboid...",
+        "uk": "Запуск Project Zomboid..."
+    },
+    "modguard_status_scanning": {
+        "en": "PZ-ModGuard: {profile} in progress...",
+        "uk": "PZ-ModGuard: виконується {profile}..."
+    },
+    "err_modguard_critical_title": {
+        "en": "CRITICAL SECURITY THREAT DETECTED!",
+        "uk": "КРИТИЧНА ЗАГРОЗА БЕЗПЕКИ!"
+    },
+    "err_modguard_critical_msg": {
+        "en": "PZ-ModGuard detected critical security threats or malicious bytecode in your mods!\n\nGame launch has been TERMINATED to protect your system.\n\nDetails:\n{details}\n\nPlease check the Console tab for the full security report and remove malicious mods before restarting.",
+        "uk": "PZ-ModGuard виявив критичні загрози безпеки або шкідливий байткод у встановлених модах!\n\nЗапуск гри СКАСОВАНО для захисту вашої системи та безпеки.\n\nДеталі:\n{details}\n\nБудь ласка, перегляньте детальний звіт на вкладці «Консоль» та видаліть шкідливі моди перед повторним запуском."
+    },
     "banner_launcher_not_in_game": {
         "en": "⚠️ Launcher is not beside ProjectZomboid64.exe. For proper operation, place it in the game directory.",
         "uk": "⚠️ Лаунчер не лежить біля ProjectZomboid64.exe. Рекомендується помістити його в папку гри."

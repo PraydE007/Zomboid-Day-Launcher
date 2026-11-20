@@ -3,6 +3,7 @@ Main Window — Frameless dark launcher shell with rounded corners, smooth tab f
 and dynamic multi-language localization.
 """
 import sys
+import time
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
@@ -14,7 +15,9 @@ from PyQt6.QtCore import Qt, QPoint, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QIcon, QPixmap, QPainterPath, QRegion
 
 from core.config import ConfigManager
-from core.process_manager import ProcessManager
+from core.process_manager import (
+    ProcessManager, ModGuardScanThread, determine_modguard_scan_profile
+)
 from core.installer import InstallWorker
 from core.utils import get_resource_path, get_app_dir
 from core.i18n import t
@@ -109,6 +112,7 @@ class MainWindow(QMainWindow):
         self.config = config_manager
         self.proc_mgr = ProcessManager(self.config)
         self.install_worker = None
+        self.scan_worker = None
 
         self.setWindowTitle("Zomboid Day Launcher")
         self.setMinimumSize(960, 640)
@@ -324,8 +328,9 @@ class MainWindow(QMainWindow):
     def _handle_start(self, is_debug: bool):
         lang = self.config.language
         app_dir = get_app_dir()
+        game_dir = Path(self.config.game_dir)
 
-        # Prohibit launch strictly if launcher is not located in the game folder
+        # 1. Prohibit launch strictly if launcher is not located in the game folder
         if not (app_dir / "ProjectZomboid64.exe").exists():
             QMessageBox.critical(
                 self,
@@ -334,13 +339,107 @@ class MainWindow(QMainWindow):
             )
             return
 
-        scan = self.config.get("scan_modguard_before_launch", True)
-        if scan:
-            self.tab_home.show_progress(35, t("modguard_scan_running", lang))
-            QApplication.processEvents()
+        # 2. Check if game is already running
+        if self.proc_mgr.is_game_running():
+            QMessageBox.information(
+                self,
+                t("info", lang),
+                "Project Zomboid is already running!" if lang == "en" else "Project Zomboid вже запущено!"
+            )
+            return
 
-        ok = self.proc_mgr.launch_game(is_debug=is_debug, run_security_scan=scan)
-        self.tab_home.hide_progress()
+        scan = self.config.get("scan_modguard_before_launch", True)
+        modguard_path = game_dir / "PZ-ModGuard.bat"
+
+        # 3. Smart PZ-ModGuard Security Scan before launching
+        if scan and modguard_path.exists():
+            profile_id, profile_title_key, scan_reason_key = determine_modguard_scan_profile(self.config)
+            profile_name = t(profile_title_key, lang)
+            profile_reason = t(scan_reason_key, lang)
+
+            # Show animated spinner circle on HomeTab
+            self.tab_home.show_launch_spinner(
+                f"PZ-ModGuard: {profile_name}",
+                profile_reason
+            )
+
+            # Run asynchronous scan in background thread
+            self.scan_worker = ModGuardScanThread(game_dir=game_dir, profile_id=profile_id, parent=self)
+            self.scan_worker.sig_log.connect(self.tab_console.append_log)
+            self.scan_worker.sig_finished.connect(
+                lambda is_clean, code, summary, threats: self._on_modguard_scan_completed(
+                    is_debug=is_debug,
+                    profile_id=profile_id,
+                    is_clean=is_clean,
+                    code=code,
+                    summary=summary,
+                    threats=threats
+                )
+            )
+            self.scan_worker.start()
+        else:
+            # Direct launch with spinner
+            self.tab_home.show_launch_spinner(t("launching_game", lang), "")
+            QApplication.processEvents()
+            self._do_launch_game(is_debug)
+
+    def _on_modguard_scan_completed(
+        self,
+        is_debug: bool,
+        profile_id: int,
+        is_clean: bool,
+        code: int,
+        summary: str,
+        threats: list
+    ):
+        lang = self.config.language
+
+        # Critical threat found: TERMINATE launch immediately!
+        if (not is_clean) or code == 20 or len(threats) > 0:
+            self.tab_home.hide_launch_spinner()
+
+            details_list = threats[:6]
+            if len(threats) > 6:
+                details_list.append(f"... (+ {len(threats) - 6} more threats in Console)")
+            details_str = "\n".join(details_list) if details_list else summary
+
+            self.tab_console.append_log("⛔ [КРИТИЧНА ЗАГРОЗА БЕЗПЕКИ]: ЗАПУСК ГРИ ПРИМУСОВО СКАСОВАНО!")
+            self.tab_console.append_log(f"   Код результату: {code}")
+            for t_item in threats:
+                self.tab_console.append_log(f"   -> {t_item}")
+
+            QMessageBox.critical(
+                self,
+                t("err_modguard_critical_title", lang),
+                t("err_modguard_critical_msg", lang, details=details_str)
+            )
+            return
+
+        # Scan clean: if Profile 2 was executed, remember successful full scan
+        if profile_id == 2:
+            self.config.set("modguard_full_scan_done", True)
+            self.config.set("modguard_last_full_scan_time", time.time())
+            game_dir = Path(self.config.game_dir)
+            engine_mtime = 0.0
+            for ef in ["projectzomboid.jar", "ProjectZomboid64.exe", "ProjectZomboid64.json"]:
+                p = game_dir / ef
+                if p.exists():
+                    try:
+                        m = p.stat().st_mtime
+                        if m > engine_mtime:
+                            engine_mtime = m
+                    except Exception:
+                        pass
+            self.config.set("modguard_last_engine_mtime", engine_mtime)
+
+        self.tab_home.set_launch_spinner_text(t("launching_game", lang), "")
+        QApplication.processEvents()
+        self._do_launch_game(is_debug)
+
+    def _do_launch_game(self, is_debug: bool):
+        lang = self.config.language
+        ok = self.proc_mgr.launch_game(is_debug=is_debug, run_security_scan=False)
+        self.tab_home.hide_launch_spinner()
         if ok:
             self.tab_home.refresh_status()
             if self.config.hide_to_tray_on_start:
@@ -352,7 +451,11 @@ class MainWindow(QMainWindow):
                     QSystemTrayIcon.MessageIcon.Information, 3000,
                 )
         else:
-            QMessageBox.critical(self, t("error", lang), "Failed to start game." if lang == "en" else "Не вдалося запустити гру.")
+            QMessageBox.critical(
+                self,
+                t("error", lang),
+                "Failed to start game." if lang == "en" else "Не вдалося запустити гру."
+            )
 
     def _handle_settings_saved(self):
         self.tab_home.refresh_status()

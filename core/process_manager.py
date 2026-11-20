@@ -5,7 +5,7 @@ import subprocess
 import ctypes
 import ctypes.wintypes
 from pathlib import Path
-from typing import Optional, Set
+from typing import Optional, Set, Tuple, List
 from PyQt6.QtCore import QThread, pyqtSignal, QObject
 
 TH32CS_SNAPPROCESS = 0x00000002
@@ -94,48 +94,113 @@ class LogWatcherThread(QThread):
             self.sig_new_line.emit(f"[LogWatcher помилка]: {e}")
 
 
+def determine_modguard_scan_profile(config) -> Tuple[int, str, str]:
+    """
+    Decide whether to run Profile 2 (Full Deep Scan) or Profile 1 (Quick Scan).
+    Returns (profile_id, profile_title_key, scan_reason_key).
+
+    Profile 2 (Full Deep Scan):
+      1. First scan ever (config "modguard_full_scan_done" is False).
+      2. Base game engine was updated (projectzomboid.jar or ProjectZomboid64.exe mtime changed).
+      3. Periodic audit (7+ days since last full scan).
+
+    Profile 1 (Quick Scan, ~1.5s):
+      - Routine launches when no engine changes and recent full scan exists.
+    """
+    game_dir = Path(config.game_dir)
+    full_done = config.get("modguard_full_scan_done", False)
+    if not full_done:
+        return 2, "scan_profile_full", "scan_reason_first"
+
+    # Check 7-day periodic audit
+    last_full_ts = float(config.get("modguard_last_full_scan_time", 0.0))
+    now = time.time()
+    if now - last_full_ts > (7 * 86400):
+        return 2, "scan_profile_full", "scan_reason_periodic"
+
+    # Check engine file modification times
+    current_engine_mtime = 0.0
+    for engine_file in ["projectzomboid.jar", "ProjectZomboid64.exe", "ProjectZomboid64.json"]:
+        p = game_dir / engine_file
+        if p.exists():
+            try:
+                m = p.stat().st_mtime
+                if m > current_engine_mtime:
+                    current_engine_mtime = m
+            except Exception:
+                pass
+
+    last_engine_mtime = float(config.get("modguard_last_engine_mtime", 0.0))
+    if current_engine_mtime > 0 and current_engine_mtime > last_engine_mtime:
+        return 2, "scan_profile_full", "scan_reason_updated"
+
+    # Routine quick scan
+    return 1, "scan_profile_quick", "scan_reason_routine"
+
+
 class ModGuardScanThread(QThread):
     sig_log = pyqtSignal(str)
-    sig_finished = pyqtSignal(bool, str)
+    sig_finished = pyqtSignal(bool, int, str, list)  # (is_clean, exit_code, summary, critical_threats)
 
-    def __init__(self, game_dir: Path, parent=None):
+    def __init__(self, game_dir: Path, profile_id: int = 1, parent=None):
         super().__init__(parent)
         self.game_dir = Path(game_dir)
+        self.profile_id = profile_id
 
     def run(self):
         modguard_path = self.game_dir / "PZ-ModGuard.bat"
         if not modguard_path.exists():
             self.sig_log.emit(f"[PZ-ModGuard помилка]: Скрипт {modguard_path} не знайдено.")
-            self.sig_finished.emit(False, f"PZ-ModGuard.bat not found in {self.game_dir}")
+            self.sig_finished.emit(False, -1, f"PZ-ModGuard.bat not found in {self.game_dir}", ["PZ-ModGuard.bat not found"])
             return
 
-        self.sig_log.emit("🛡️ [PZ-ModGuard]: Початок сканування безпеки модів...")
-        self.sig_log.emit(f"  → Скрипт: {modguard_path}")
+        profile_label = "Full Deep Scan (2)" if self.profile_id == 2 else "Quick Scan (1)"
+        self.sig_log.emit(f"🛡️ [PZ-ModGuard]: Початок сканування безпеки модів ({profile_label})...")
         self.sig_log.emit(f"  → Робоча папка: {self.game_dir}")
 
+        critical_threats: List[str] = []
         try:
+            env = os.environ.copy()
+            env["PZMG_PROFILE"] = str(self.profile_id)
+
+            ps_cmd = [
+                "powershell.exe",
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-Command",
+                f"$env:PZMG_PROFILE='{self.profile_id}'; Invoke-Expression ([System.IO.File]::ReadAllText('{str(modguard_path)}'))"
+            ]
+
             proc = subprocess.Popen(
-                ["cmd.exe", "/c", str(modguard_path)],
+                ps_cmd,
                 cwd=str(self.game_dir),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                env=env,
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
             for line in iter(proc.stdout.readline, ''):
                 if line:
-                    self.sig_log.emit(f"[PZ-ModGuard]: {line.rstrip()}")
+                    clean_line = line.rstrip()
+                    self.sig_log.emit(f"[PZ-ModGuard]: {clean_line}")
+                    lower = clean_line.lower()
+                    if "[critical]" in lower or "critical:" in lower or "[threat]" in lower or "danger!" in lower or "critical threat(s) detected" in lower:
+                        critical_threats.append(clean_line)
+
             proc.stdout.close()
             code = proc.wait()
-            if code == 0:
-                self.sig_log.emit("🛡️ [PZ-ModGuard]: Сканування завершено успішно.")
-                self.sig_finished.emit(True, "Scan complete.")
+            # Exit code 20 indicates critical threats detected ($statsCritical > 0)
+            is_clean = (code == 0 or code == 10) and len(critical_threats) == 0
+            if not is_clean:
+                self.sig_log.emit(f"🛡️ [PZ-ModGuard]: ⛔ ВИЯВЛЕНО КРИТИЧНІ ЗАГРОЗИ! Код: {code}, Загроз: {len(critical_threats)}")
+                self.sig_finished.emit(False, code, f"Critical threats detected (code {code})", critical_threats)
             else:
-                self.sig_log.emit(f"🛡️ [PZ-ModGuard]: Завершено з кодом {code}.")
-                self.sig_finished.emit(True, f"Finished with code {code}.")
+                self.sig_log.emit(f"🛡️ [PZ-ModGuard]: ✅ Сканування завершено успішно (код {code}).")
+                self.sig_finished.emit(True, code, "Scan complete.", [])
         except Exception as e:
             self.sig_log.emit(f"[PZ-ModGuard виняток]: {e}")
-            self.sig_finished.emit(False, str(e))
+            self.sig_finished.emit(False, -1, str(e), [str(e)])
 
 
 class ProcessManager(QObject):
@@ -298,10 +363,10 @@ class ProcessManager(QObject):
         except Exception as e:
             self.sig_log.emit(f"[Помилка виконання команди]: {e}")
 
-    def run_modguard_scan_async(self, on_log=None, on_finished=None) -> ModGuardScanThread:
+    def run_modguard_scan_async(self, profile_id: int = 1, on_log=None, on_finished=None) -> ModGuardScanThread:
         """Run PZ-ModGuard scan asynchronously in a background thread."""
         game_dir = Path(self.config.game_dir)
-        worker = ModGuardScanThread(game_dir, parent=self)
+        worker = ModGuardScanThread(game_dir, profile_id=profile_id, parent=self)
         if on_log:
             worker.sig_log.connect(on_log)
         if on_finished:

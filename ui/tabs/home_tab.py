@@ -21,6 +21,7 @@ from core.version_checker import VersionChecker
 from core.detector import SystemDetector
 from core.i18n import t
 from ui.dialogs.diagnostics_dialog import DiagnosticsDialog
+from ui.widgets.spinner import LoadingSpinner
 
 
 class HeroBannerWidget(QWidget):
@@ -222,6 +223,42 @@ class HomeTab(QWidget):
         overlay.addStretch()
 
         # ==============================================================
+        # LAUNCH SPINNER & STATUS NOTIFICATION (Active during launch / scan)
+        # ==============================================================
+        self.launch_container = QWidget(self.hero)
+        self.launch_container.setObjectName("LaunchContainer")
+        self.launch_container.setVisible(False)
+        self.launch_container.setStyleSheet("""
+            #LaunchContainer {
+                background-color: rgba(18, 18, 18, 0.88);
+                border: 1px solid rgba(34, 197, 94, 0.5);
+                border-radius: 12px;
+            }
+        """)
+        launch_layout = QHBoxLayout(self.launch_container)
+        launch_layout.setContentsMargins(14, 10, 14, 10)
+        launch_layout.setSpacing(14)
+
+        self.spinner = LoadingSpinner(size=34, parent=self.launch_container)
+        launch_layout.addWidget(self.spinner)
+
+        lbl_box = QVBoxLayout()
+        lbl_box.setSpacing(2)
+        self.lbl_launch_title = QLabel(t("launching_game", lang), self.launch_container)
+        self.lbl_launch_title.setStyleSheet("color: #22c55e; font-size: 13px; font-weight: 700; background: transparent;")
+        lbl_box.addWidget(self.lbl_launch_title)
+
+        self.lbl_launch_desc = QLabel("", self.launch_container)
+        self.lbl_launch_desc.setStyleSheet("color: #9ca3af; font-size: 11px; font-weight: 500; background: transparent;")
+        lbl_box.addWidget(self.lbl_launch_desc)
+
+        launch_layout.addLayout(lbl_box)
+        launch_layout.addStretch()
+
+        overlay.addWidget(self.launch_container)
+        overlay.addSpacing(6)
+
+        # ==============================================================
         # 2. BOTTOM-ANCHORED SECTION: Action buttons & Language Selector
         # ==============================================================
         btn_row = QHBoxLayout()
@@ -415,3 +452,26 @@ class HomeTab(QWidget):
     def hide_progress(self):
         self.progress_bar.setVisible(False)
         self.lbl_progress_status.setVisible(False)
+
+    def show_launch_spinner(self, title: str, subtitle: str = ""):
+        self.lbl_launch_title.setText(title)
+        self.lbl_launch_desc.setText(subtitle)
+        self.lbl_launch_desc.setVisible(bool(subtitle))
+        self.launch_container.setVisible(True)
+        self.spinner.start()
+
+        # Disable buttons while launching/scanning
+        self.btn_start.setEnabled(False)
+        self.btn_debug_start.setEnabled(False)
+        self.btn_install.setEnabled(False)
+        self.btn_refresh.setEnabled(False)
+
+    def set_launch_spinner_text(self, title: str, subtitle: str = ""):
+        self.lbl_launch_title.setText(title)
+        self.lbl_launch_desc.setText(subtitle)
+        self.lbl_launch_desc.setVisible(bool(subtitle))
+
+    def hide_launch_spinner(self):
+        self.spinner.stop()
+        self.launch_container.setVisible(False)
+        self.refresh_status()

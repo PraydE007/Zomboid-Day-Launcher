@@ -108,14 +108,14 @@ def detect_user_zomboid_dir() -> str:
 
 
 def get_default_hero_image() -> str:
-    """Return default hero image path."""
-    preferred = Path(r"D:\Pictures\Anime Zomboid Day.png")
-    if preferred.exists():
-        return str(preferred)
+    """Return default hero image path bundled directly inside launcher assets."""
     local_hero = get_resource_path("assets/hero.png")
     if local_hero.exists():
         return str(local_hero)
-    return str(preferred)
+    app_hero = get_app_dir() / "assets" / "hero.png"
+    if app_hero.exists():
+        return str(app_hero)
+    return str(local_hero)
 
 
 def load_external_repositories() -> Optional[List[Dict[str, Any]]]:
@@ -228,8 +228,9 @@ class ConfigManager:
 
     @property
     def hero_image(self) -> str:
-        val = self.data.get("hero_image", "")
-        if val and Path(val).exists():
+        val = str(self.data.get("hero_image", ""))
+        # Ignore external D:\Pictures or non-existent files and use bundled resource
+        if val and Path(val).exists() and not val.lower().startswith("d:\\pictures"):
             return val
         return get_default_hero_image()
 
