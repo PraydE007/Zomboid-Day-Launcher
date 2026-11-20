@@ -114,7 +114,8 @@ class HeroBannerWidget(QWidget):
 class StyledTitleWidget(QWidget):
     """
     Renders the game title and subtitle with 3D drop shadow and dual-color typography:
-    'ZOMBOID DAY' in toxic green (#22c55e) and 'PROJECT' in crisp white (#ffffff).
+    'ZOMBOID DAY' prominent in toxic green (#22c55e, size 46),
+    and ONLY 'PROJECT' in smaller crisp white (#ffffff, size 24).
     Rendered with native QPainter so it is completely immune to modal dialog focus or mouse clicks.
     """
     def __init__(self, subtitle_text: str = "", parent=None):
@@ -123,7 +124,7 @@ class StyledTitleWidget(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        self.setFixedHeight(68)
+        self.setFixedHeight(84)
 
     def set_subtitle(self, text: str):
         self.subtitle_text = text
@@ -137,52 +138,62 @@ class StyledTitleWidget(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
 
-        # Smaller title font (size 34)
-        title_font = QFont("Freckle Face", 34)
-        title_font.setWeight(QFont.Weight.Black)
-        painter.setFont(title_font)
+        # 1. Main Title: 'ZOMBOID DAY' (large size 46)
+        font_main = QFont("Freckle Face", 46)
+        font_main.setWeight(QFont.Weight.Black)
 
-        fm = painter.fontMetrics()
+        # 2. Only 'PROJECT' is smaller (size 24)
+        font_proj = QFont("Freckle Face", 24)
+        font_proj.setWeight(QFont.Weight.Black)
+
+        painter.setFont(font_main)
+        fm_main = painter.fontMetrics()
+
         part1 = "ZOMBOID DAY "
         part2 = "PROJECT"
-        w1 = fm.horizontalAdvance(part1)
+        w1 = fm_main.horizontalAdvance(part1)
 
-        base_y = fm.ascent() + 1
+        base_y = fm_main.ascent() + 2
 
-        # Deep 3D Drop Shadows adapted for smaller size
+        # Deep 3D Drop Shadows
         shadow_layers = [
-            (0, 3, QColor(0, 0, 0, 160)),
-            (1, 2, QColor(0, 0, 0, 210)),
+            (0, 4, QColor(0, 0, 0, 160)),
+            (1, 3, QColor(0, 0, 0, 200)),
+            (0, 2, QColor(0, 0, 0, 240)),
             (0, 1, QColor(0, 0, 0, 255)),
         ]
-        full_text = part1 + part2
         for dx, dy, col in shadow_layers:
             painter.setPen(col)
-            painter.drawText(dx, base_y + dy, full_text)
+            painter.setFont(font_main)
+            painter.drawText(dx, base_y + dy, part1)
+            painter.setFont(font_proj)
+            painter.drawText(w1 + dx, base_y + dy, part2)
 
-        # Part 1: Toxic Green (#22c55e)
+        # Part 1: ZOMBOID DAY — Large Toxic Green (#22c55e)
+        painter.setFont(font_main)
         painter.setPen(QColor("#22c55e"))
         painter.drawText(0, base_y, part1)
 
-        # Part 2: Pure Crisp White (#ffffff)
+        # Part 2: PROJECT — Smaller Pure White (#ffffff)
+        painter.setFont(font_proj)
         painter.setPen(QColor("#ffffff"))
         painter.drawText(w1, base_y, part2)
 
-        # 2. Subtitle Tagline
+        # 3. Subtitle Tagline
         if self.subtitle_text:
-            sub_font = QFont("Segoe UI", 9)
+            sub_font = QFont("Segoe UI", 10)
             sub_font.setWeight(QFont.Weight.Bold)
-            sub_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.2)
+            sub_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.4)
             painter.setFont(sub_font)
             sub_fm = painter.fontMetrics()
-            sub_y = base_y + sub_fm.height() + 4
+            sub_y = base_y + sub_fm.height() + 6
 
             # Subtitle Shadow
             painter.setPen(QColor(0, 0, 0, 220))
             painter.drawText(1, sub_y + 1, self.subtitle_text)
 
             # Subtitle Text
-            painter.setPen(QColor("#a3a3a3"))
+            painter.setPen(QColor("#d4d4d4"))
             painter.drawText(0, sub_y, self.subtitle_text)
 
 
