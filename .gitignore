@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+cache/
+logs/
+launcher_config.json
+*.log
+.vscode/
+.idea/
