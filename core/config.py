@@ -118,6 +118,30 @@ def get_default_hero_image() -> str:
     return str(preferred)
 
 
+def load_external_repositories() -> Optional[List[Dict[str, Any]]]:
+    r"""
+    Load repositories definition dynamically:
+    1. First checks local repo files: C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\repositories.json
+    2. Then checks cache/repos/zomboid-day-files/repositories.json
+    3. Fallback to launcher dir repositories.json
+    """
+    candidates = [
+        Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\repositories.json"),
+        get_app_dir() / "cache" / "repos" / "zomboid-day-files" / "repositories.json",
+        get_app_dir() / "repositories.json"
+    ]
+    for c in candidates:
+        if c.exists():
+            try:
+                with open(c, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list) and len(data) > 0:
+                        return data
+            except Exception as e:
+                print(f"[Config] Error loading {c}: {e}")
+    return None
+
+
 class ConfigManager:
     def __init__(self, base_dir: Optional[Path] = None):
         if base_dir is None:
@@ -219,7 +243,10 @@ class ConfigManager:
 
     @property
     def repositories(self) -> List[Dict[str, Any]]:
-        repos = self.data.get("repositories", [])
+        external = load_external_repositories()
+        if external is not None:
+            return sorted(external, key=lambda x: x.get("order", 999))
+        repos = self.data.get("repositories", DEFAULT_REPOSITORIES)
         return sorted(repos, key=lambda x: x.get("order", 999))
 
     def update_repositories(self, repos: List[Dict[str, Any]]):

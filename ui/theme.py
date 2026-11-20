@@ -63,10 +63,10 @@ QScrollBar::handle:horizontal {
 
 /* ===== TITLE BAR ===== */
 #TitleBar {
-    background-color: #151515;
+    background-color: rgba(18, 18, 18, 0.72);
     border-top-left-radius: 13px;
     border-top-right-radius: 13px;
-    border-bottom: 1px solid #222222;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 #TitleLabel {
     color: #e5e5e5;
@@ -100,33 +100,37 @@ QScrollBar::handle:horizontal {
     color: #ffffff;
 }
 
-/* ===== NAVIGATION BAR ===== */
+/* ===== NAVIGATION BAR & TABS (SEMI-TRANSPARENT GLASS) ===== */
 #NavBar {
-    background-color: #151515;
-    border-bottom: 1px solid #222222;
+    background-color: rgba(18, 18, 18, 0.65);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 QPushButton.NavTab {
-    background: transparent;
-    color: #737373;
-    border: none;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
-    padding: 8px 18px;
-    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: #999999;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 6px;
+    padding: 7px 22px;
+    font-weight: 700;
     font-size: 13px;
+    margin: 2px 4px;
 }
 QPushButton.NavTab:hover {
-    color: #e5e5e5;
+    background-color: rgba(255, 255, 255, 0.10);
+    color: #f5f5f5;
+    border-color: rgba(255, 255, 255, 0.18);
 }
 QPushButton.NavTab:checked {
-    color: #ffffff;
-    border-bottom: 2px solid #22c55e;
+    background-color: rgba(34, 197, 94, 0.22);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.50);
+    font-weight: 800;
 }
 
 /* ===== CARDS & CONTAINERS ===== */
 QFrame.GlassCard {
-    background-color: #171717;
-    border: 1px solid #242424;
+    background-color: rgba(22, 22, 22, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
 }
 
@@ -373,14 +377,14 @@ QHeaderView::section {
     font-size: 11px;
 }
 
-/* ===== CONSOLE / TERMINAL ===== */
+/* ===== CONSOLE / TERMINAL (SEMI-TRANSPARENT GLASS) ===== */
 QPlainTextEdit.TerminalView {
-    background-color: #0b0b0b;
+    background-color: rgba(12, 12, 12, 0.82);
     color: #22c55e;
     font-family: 'Consolas', 'Courier New', monospace;
     font-size: 12px;
-    border: 1px solid #1f1f1f;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
-    padding: 8px;
+    padding: 10px;
 }
 """

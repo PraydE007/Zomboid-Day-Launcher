@@ -163,8 +163,9 @@ class MainWindow(QMainWindow):
         # Navigation Bar
         nav = QWidget(self.shell)
         nav.setObjectName("NavBar")
+        nav.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         nav_layout = QHBoxLayout(nav)
-        nav_layout.setContentsMargins(18, 4, 18, 4)
+        nav_layout.setContentsMargins(18, 5, 18, 5)
         nav_layout.setSpacing(6)
 
         self.btn_group = QButtonGroup(self)
@@ -188,6 +189,7 @@ class MainWindow(QMainWindow):
 
         # Stacked tabs
         self.stack = QStackedWidget(self.shell)
+        self.stack.setStyleSheet("background: transparent;")
         self.tab_home = HomeTab(self.config, self.proc_mgr, self)
         self.tab_settings = SettingsTab(self.config, self)
         self.tab_console = ConsoleTab(self.config, self.proc_mgr, self)

@@ -28,6 +28,7 @@ class ConsoleTab(QWidget):
         self.status_timer.start(5000)
 
     def _setup_ui(self):
+        self.setStyleSheet("background: transparent;")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 18, 24, 24)
         layout.setSpacing(12)
