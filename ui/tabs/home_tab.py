@@ -1,14 +1,14 @@
 """
 Home Tab — Clean hero layout with top-anchored title & top-aligned background image.
-Features text logo 'Zomboid Day Project' using 'Freckle Face' font, cinematic fades,
-instantaneous cached rendering (zero lag), and bottom-anchored actions.
+Features a stylish, dynamic game title with 3D drop shadow, crystal clear transparent
+text overlays (no murky dark boxes), and stable non-breaking buttons.
 """
 from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QProgressBar, QSizePolicy
+    QProgressBar, QSizePolicy, QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import (
@@ -21,8 +21,9 @@ from core.version_checker import VersionChecker
 
 class HeroBannerWidget(QWidget):
     """
-    Background image widget anchored to top edge (y=0) with smooth cinematic fades.
+    Background image widget anchored strictly to top edge (y=0).
     Pre-renders and caches scaled pixmap on resize to ensure 60+ FPS butter-smooth rendering.
+    Keeps background artwork clear and vibrant with only a soft bottom fade for action buttons.
     """
     def __init__(self, image_path: str, parent=None):
         super().__init__(parent)
@@ -90,25 +91,17 @@ class HeroBannerWidget(QWidget):
             painter.fillRect(rect, QColor("#121212"))
 
         # --- FADES & GRADIENTS ---
-        # 1. Subtle top fade (blends seamlessly from the nav bar)
-        top_grad = QLinearGradient(0, 0, 0, min(140.0, h * 0.3))
-        top_grad.setColorAt(0.0, QColor(18, 18, 18, 160))
-        top_grad.setColorAt(0.5, QColor(18, 18, 18, 70))
-        top_grad.setColorAt(1.0, QColor(18, 18, 18, 0))
+        # 1. Subtle top seam fade (only 35px to smoothly connect with nav bar)
+        top_grad = QLinearGradient(0, 0, 0, min(35.0, h * 0.1))
+        top_grad.setColorAt(0.0, QColor(21, 21, 21, 140))
+        top_grad.setColorAt(1.0, QColor(21, 21, 21, 0))
         painter.fillRect(rect, QBrush(top_grad))
 
-        # 2. Left side horizontal vignette for crisp text readability
-        left_grad = QLinearGradient(0, 0, min(650.0, w * 0.75), 0)
-        left_grad.setColorAt(0.0, QColor(14, 14, 14, 190))
-        left_grad.setColorAt(0.55, QColor(14, 14, 14, 90))
-        left_grad.setColorAt(1.0, QColor(14, 14, 14, 0))
-        painter.fillRect(rect, QBrush(left_grad))
-
-        # 3. Bottom cinematic fade into solid dark background for controls
-        bottom_grad = QLinearGradient(0, h * 0.35, 0, h)
+        # 2. Smooth bottom cinematic fade (only at lower 40% where buttons live)
+        bottom_grad = QLinearGradient(0, h * 0.55, 0, h)
         bottom_grad.setColorAt(0.0, QColor(18, 18, 18, 0))
-        bottom_grad.setColorAt(0.55, QColor(18, 18, 18, 160))
-        bottom_grad.setColorAt(0.85, QColor(18, 18, 18, 235))
+        bottom_grad.setColorAt(0.60, QColor(18, 18, 18, 160))
+        bottom_grad.setColorAt(0.90, QColor(18, 18, 18, 240))
         bottom_grad.setColorAt(1.0, QColor(18, 18, 18, 255))
         painter.fillRect(rect, QBrush(bottom_grad))
 
@@ -136,35 +129,57 @@ class HomeTab(QWidget):
 
         # Overlay layout: top-anchored header, bottom-anchored actions
         overlay = QVBoxLayout(self.hero)
-        overlay.setContentsMargins(40, 32, 40, 36)
+        overlay.setContentsMargins(40, 28, 40, 32)
         overlay.setSpacing(0)
 
         # ==============================================================
-        # 1. TOP-ANCHORED SECTION: Text logo & version status
+        # 1. TOP-ANCHORED SECTION: Dynamic Styled Title & Version Badge
         # ==============================================================
-        self.lbl_title = QLabel("Zomboid Day Project", self.hero)
-        self.lbl_title.setStyleSheet("""
-            color: #ffffff;
-            font-family: 'Freckle Face', sans-serif;
-            font-size: 48px;
-            letter-spacing: 1.5px;
-            background: transparent;
-            padding: 0px;
-            margin: 0px;
-        """)
+        self.lbl_title = QLabel(self.hero)
+        self.lbl_title.setText(
+            '<span style="font-family:\'Freckle Face\',sans-serif; font-size:52px; color:#22c55e; font-weight:900;">ZOMBOID DAY</span> '
+            '<span style="font-family:\'Segoe UI\',sans-serif; font-size:26px; color:#ffffff; font-weight:800; letter-spacing:2px;">PROJECT</span>'
+        )
+        self.lbl_title.setStyleSheet("background: transparent; padding: 0; margin: 0;")
+        
+        # 3D Drop shadow for AAA title effect (no background box required)
+        title_shadow = QGraphicsDropShadowEffect(self.lbl_title)
+        title_shadow.setBlurRadius(24)
+        title_shadow.setColor(QColor(0, 0, 0, 240))
+        title_shadow.setOffset(0, 3)
+        self.lbl_title.setGraphicsEffect(title_shadow)
         overlay.addWidget(self.lbl_title)
 
-        overlay.addSpacing(10)
+        overlay.addSpacing(6)
 
-        # Version Pill Badge
+        # Subtitle / Tagline
+        self.lbl_subtitle = QLabel("SURVIVAL CLIENT & MODPACK • BUILD 42+", self.hero)
+        self.lbl_subtitle.setStyleSheet("""
+            color: #d4d4d4;
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            background: transparent;
+        """)
+        sub_shadow = QGraphicsDropShadowEffect(self.lbl_subtitle)
+        sub_shadow.setBlurRadius(16)
+        sub_shadow.setColor(QColor(0, 0, 0, 220))
+        sub_shadow.setOffset(0, 2)
+        self.lbl_subtitle.setGraphicsEffect(sub_shadow)
+        overlay.addWidget(self.lbl_subtitle)
+
+        overlay.addSpacing(12)
+
+        # Version Pill Badge (clean glass style with no dark box)
         self.badge_version = QLabel("Перевірка версії...", self.hero)
-        self.badge_version.setFixedHeight(26)
+        self.badge_version.setFixedHeight(24)
         self.badge_version.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self.badge_version.setStyleSheet("""
-            background-color: rgba(20, 20, 20, 0.85);
-            color: #a3a3a3;
-            border: 1px solid #333333;
-            border-radius: 13px;
+            background-color: rgba(0, 0, 0, 0.40);
+            color: #22c55e;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
             padding: 2px 14px;
             font-size: 11px;
             font-weight: 600;
@@ -185,23 +200,23 @@ class HomeTab(QWidget):
         # Install Button
         self.btn_install = QPushButton("ВСТАНОВИТИ", self.hero)
         self.btn_install.setProperty("class", "PrimaryButton")
-        self.btn_install.setMinimumHeight(52)
-        self.btn_install.setMinimumWidth(220)
+        self.btn_install.setMinimumHeight(48)
+        self.btn_install.setMinimumWidth(200)
         self.btn_install.clicked.connect(self.sig_install_clicked.emit)
         btn_row.addWidget(self.btn_install)
 
         # Play Button
         self.btn_start = QPushButton("ГРАТИ", self.hero)
         self.btn_start.setProperty("class", "PrimaryButton")
-        self.btn_start.setMinimumHeight(52)
-        self.btn_start.setMinimumWidth(220)
+        self.btn_start.setMinimumHeight(48)
+        self.btn_start.setMinimumWidth(200)
         self.btn_start.clicked.connect(lambda: self.sig_start_clicked.emit(False))
         btn_row.addWidget(self.btn_start)
 
         # Debug Button
-        self.btn_debug_start = QPushButton("Debug", self.hero)
+        self.btn_debug_start = QPushButton("DEBUG", self.hero)
         self.btn_debug_start.setProperty("class", "DebugButton")
-        self.btn_debug_start.setMinimumHeight(52)
+        self.btn_debug_start.setMinimumHeight(48)
         self.btn_debug_start.setMinimumWidth(110)
         self.btn_debug_start.clicked.connect(lambda: self.sig_start_clicked.emit(True))
         btn_row.addWidget(self.btn_debug_start)
@@ -234,7 +249,7 @@ class HomeTab(QWidget):
         text = status["text"]
         ver = str(status.get("version", "")).strip().lstrip("v")
 
-        # Format cleanly: "Актуальна • v1.0.0" without duplicated "vv"
+        # Format cleanly: "Актуальна • v1.0.0"
         if is_installed and ver and ver not in ["—", "Не встановлено", "Помилка"]:
             badge_text = f"{text} • v{ver}"
         else:
@@ -242,10 +257,10 @@ class HomeTab(QWidget):
 
         self.badge_version.setText(badge_text)
         self.badge_version.setStyleSheet(f"""
-            background-color: rgba(18, 18, 18, 0.88);
+            background-color: rgba(0, 0, 0, 0.40);
             color: {color};
             border: 1px solid {color};
-            border-radius: 13px;
+            border-radius: 12px;
             padding: 2px 14px;
             font-size: 11px;
             font-weight: 600;

@@ -14,6 +14,12 @@ QWidget {
     selection-color: #000000;
 }
 
+/* Ensure all labels have transparent backgrounds by default */
+QLabel {
+    background: transparent;
+    background-color: transparent;
+}
+
 /* ===== MAIN SHELL (ROUNDED WINDOW) ===== */
 #MainShell {
     background-color: #121212;
@@ -61,7 +67,7 @@ QScrollBar::handle:horizontal {
     color: #e5e5e5;
     font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    background: transparent;
 }
 #TitleButton {
     background: transparent;
@@ -119,17 +125,17 @@ QFrame.GlassCard {
     border-radius: 8px;
 }
 
-/* ===== BUTTONS ===== */
+/* ===== ACTION BUTTONS (STABLE CYRILLIC FONTS & NO WRAPPING) ===== */
 QPushButton.PrimaryButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #22c55e, stop:1 #16a34a);
     color: #ffffff;
     border: none;
     border-radius: 6px;
-    font-family: 'Freckle Face', 'Segoe UI', sans-serif;
-    font-size: 19px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    padding: 12px 32px;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 12px 30px;
+    text-align: center;
 }
 QPushButton.PrimaryButton:hover {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4ade80, stop:1 #22c55e);
@@ -143,21 +149,23 @@ QPushButton.PrimaryButton:disabled {
 }
 
 QPushButton.DebugButton {
-    background: transparent;
-    color: #a3a3a3;
-    border: 1px solid #333333;
+    background: rgba(22, 22, 22, 0.7);
+    color: #d4d4d4;
+    border: 1px solid #383838;
     border-radius: 6px;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
     font-size: 13px;
-    font-weight: 600;
-    padding: 12px 22px;
+    font-weight: 700;
+    padding: 12px 24px;
+    text-align: center;
 }
 QPushButton.DebugButton:hover {
     color: #ffffff;
-    border-color: #525252;
-    background: #1c1c1c;
+    border-color: #555555;
+    background: rgba(38, 38, 38, 0.85);
 }
 QPushButton.DebugButton:pressed {
-    background: #171717;
+    background: #141414;
 }
 
 QPushButton.SecondaryButton {
@@ -166,7 +174,8 @@ QPushButton.SecondaryButton {
     border: 1px solid #282828;
     border-radius: 5px;
     padding: 6px 14px;
-    font-weight: 500;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    font-weight: 600;
     font-size: 12px;
 }
 QPushButton.SecondaryButton:hover {
@@ -207,6 +216,7 @@ QCheckBox {
     color: #a3a3a3;
     spacing: 8px;
     font-size: 12px;
+    background: transparent;
 }
 QCheckBox::indicator {
     width: 15px;
