@@ -191,6 +191,32 @@ QPushButton.RefreshButton:pressed {
     color: #16a34a;
 }
 
+QPushButton.ModGuardButton {
+    background: rgba(22, 22, 22, 0.7);
+    color: #4ade80;
+    border: 1px solid #166534;
+    border-radius: 6px;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 12px 20px;
+    text-align: center;
+}
+QPushButton.ModGuardButton:hover {
+    color: #86efac;
+    border-color: #22c55e;
+    background: rgba(26, 42, 28, 0.85);
+}
+QPushButton.ModGuardButton:pressed {
+    background: #141414;
+    border-color: #15803d;
+}
+QPushButton.ModGuardButton:disabled {
+    background: rgba(20, 20, 20, 0.5);
+    color: #525252;
+    border-color: #262626;
+}
+
 #WarningBanner {
     background-color: rgba(30, 20, 5, 0.85);
     border: 1px solid #b45309;
@@ -199,6 +225,12 @@ QPushButton.RefreshButton:pressed {
     padding: 6px 12px;
     font-size: 11px;
     font-weight: 600;
+}
+#WarningBanner[status="danger"] {
+    background-color: rgba(45, 12, 12, 0.92);
+    border: 1px solid #dc2626;
+    color: #fca5a5;
+    font-weight: 700;
 }
 
 QPushButton.SecondaryButton {

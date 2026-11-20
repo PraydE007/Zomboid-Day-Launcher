@@ -49,9 +49,49 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "en": "Refresh status & run system diagnostics",
         "uk": "Оновити статус та виконати діагностику системи"
     },
+    "btn_modguard_scan": {
+        "en": "🛡️ MODGUARD SCAN",
+        "uk": "🛡️ СКАНУВАННЯ МОДІВ"
+    },
+    "btn_modguard_scanning": {
+        "en": "⏳ SCANNING...",
+        "uk": "⏳ СКАНУВАННЯ..."
+    },
+    "btn_modguard_tooltip": {
+        "en": "Run manual PZ-ModGuard security scan on installed mods",
+        "uk": "Виконати ручне сканування безпеки модів через PZ-ModGuard"
+    },
+    "modguard_scan_running": {
+        "en": "Running PZ-ModGuard security scan...",
+        "uk": "Виконується сканування PZ-ModGuard..."
+    },
+    "modguard_scan_finished": {
+        "en": "PZ-ModGuard scan complete. See Console tab.",
+        "uk": "Сканування PZ-ModGuard завершено. Деталі в консолі."
+    },
     "banner_launcher_not_in_game": {
         "en": "⚠️ Launcher is not beside ProjectZomboid64.exe. For proper operation, place it in the game directory.",
         "uk": "⚠️ Лаунчер не лежить біля ProjectZomboid64.exe. Рекомендується помістити його в папку гри."
+    },
+    "banner_launch_prohibited": {
+        "en": "🚫 LAUNCH PROHIBITED: Launcher is not in the game directory beside ProjectZomboid64.exe! Move the launcher into the game folder.",
+        "uk": "🚫 ЗАПУСК ЗАБОРОНЕНО: Лаунчер знаходиться не в папці гри поруч із ProjectZomboid64.exe! Перемістіть лаунчер у папку гри."
+    },
+    "err_launch_prohibited_title": {
+        "en": "Launch Prohibited",
+        "uk": "Запуск заборонено"
+    },
+    "err_launch_prohibited_msg": {
+        "en": "The launcher is not located in the Project Zomboid directory beside ProjectZomboid64.exe.\n\nCurrent location: {app_dir}\nGame directory: {game_dir}\n\nRunning the game from an external location is prohibited for safety and integrity reasons.\nPlease move Zomboid-Day-Launcher.exe into the game folder!",
+        "uk": "Лаунчер знаходиться не в папці гри Project Zomboid поруч із ProjectZomboid64.exe.\n\nПоточне розміщення: {app_dir}\nПапка гри: {game_dir}\n\nЗапуск гри із зовнішнього розташування суворо заборонено!\nБудь ласка, перемістіть файл Zomboid-Day-Launcher.exe у папку гри поруч із ProjectZomboid64.exe!"
+    },
+    "err_launch_prohibited_tooltip": {
+        "en": "Launch is blocked: Launcher must be in the game folder beside ProjectZomboid64.exe",
+        "uk": "Запуск заблоковано: лаунчер має знаходитись у папці гри біля ProjectZomboid64.exe"
+    },
+    "step_steam_open": {
+        "en": "Opening Steam Workshop mod collection...",
+        "uk": "Відкриття збірки модифікацій у Steam Workshop..."
     },
     "chk_launcher_loc": {
         "en": "Launcher Directory Placement",
@@ -64,6 +104,10 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
     "chk_launcher_loc_warn": {
         "en": "Running from: {app_dir}. Game folder: {game_dir}",
         "uk": "Запущено з: {app_dir}. Папка гри: {game_dir}"
+    },
+    "chk_launcher_loc_fail": {
+        "en": "Invalid location! Running from: {app_dir}. Must be beside ProjectZomboid64.exe in: {game_dir}",
+        "uk": "Неправильне розміщення! Запущено з: {app_dir}. Має бути біля ProjectZomboid64.exe у: {game_dir}"
     },
     "chk_game_exe": {
         "en": "Game Binary (ProjectZomboid64.exe)",
@@ -106,6 +150,10 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
     "status_not_installed": {
         "en": "Not installed",
         "uk": "Не встановлено"
+    },
+    "status_invalid_placement": {
+        "en": "Incorrect Launcher Location",
+        "uk": "Неправильне розміщення лаунчера"
     },
     "status_game_not_found": {
         "en": "Game folder not found",

@@ -49,11 +49,11 @@ class ManifestParser:
         for step in sorted(raw_steps, key=lambda s: s.get("order", 999)):
             stype = step.get("type", "copy_file")
             source = step.get("source", "")
-            raw_dest = step.get("destination", "{GAME_DIR}")
-            dest = self.resolve_variables(raw_dest)
+            raw_dest = step.get("destination", "")
+            dest = self.resolve_variables(raw_dest) if raw_dest else ""
             
             # Resolve full source path relative to repo_root
-            full_source = (repo_root / source).resolve()
+            full_source = (repo_root / source).resolve() if source else Path("")
 
             resolved_steps.append({
                 "id": step.get("id", f"step_{step.get('order', 1)}"),
@@ -61,8 +61,10 @@ class ManifestParser:
                 "name": step.get("name", step.get("id", "Unnamed Step")),
                 "description": step.get("description", ""),
                 "type": stype,
+                "url": step.get("url", ""),
+                "fallback_url": step.get("fallback_url", ""),
                 "source": full_source,
-                "destination": Path(dest),
+                "destination": Path(dest) if dest else Path(""),
                 "files": step.get("files", []),
                 "overwrite": step.get("overwrite", True),
                 "backup": step.get("backup", True)

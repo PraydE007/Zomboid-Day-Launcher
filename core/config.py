@@ -142,7 +142,7 @@ class ConfigManager:
             "ram_xms": "8192m",
             "ram_xmx": "12288m",
             "extra_jvm_args": "",
-            "scan_modguard_before_launch": False,
+            "scan_modguard_before_launch": True,
             "repositories": [repo.copy() for repo in DEFAULT_REPOSITORIES]
         }
 

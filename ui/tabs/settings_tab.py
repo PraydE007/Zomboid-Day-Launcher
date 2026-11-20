@@ -200,7 +200,7 @@ class SettingsTab(QWidget):
         self.edit_hero.setText(self.config.hero_image)
         self.chk_tray_on_start.setChecked(self.config.hide_to_tray_on_start)
         self.chk_show_cmd.setChecked(self.config.show_external_cmd)
-        self.chk_scan_modguard.setChecked(self.config.get("scan_modguard_before_launch", False))
+        self.chk_scan_modguard.setChecked(self.config.get("scan_modguard_before_launch", True))
 
         ram_xmx = self.config.get("ram_xmx", "12288m")
         if "6144m" in ram_xmx:

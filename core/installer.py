@@ -7,6 +7,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 from core.repo_manager import RepoManager
 from core.manifest_parser import ManifestParser
+from core.i18n import t
 
 
 class InstallWorker(QThread):
@@ -30,6 +31,31 @@ class InstallWorker(QThread):
             user_dir = Path(self.config.user_zomboid_dir)
             base_dir = Path(self.config.base_dir)
             cache_dir = base_dir / "cache" / "repos"
+
+            # Step 1: Open Steam Workshop Mod collection page
+            lang = self.config.language
+            steam_url = "steam://url/CommunityFilePage/3831192498"
+            web_url = "https://steamcommunity.com/sharedfiles/filedetails/?id=3831192498"
+            self.sig_progress.emit(2, t("step_steam_open", lang))
+            self.sig_log.emit(f"🌐 [Крок 1] Відкриття сторінки модифікацій у Steam Workshop: {web_url}")
+
+            steam_opened = False
+            try:
+                os.startfile(steam_url)
+                steam_opened = True
+                self.sig_log.emit("  → Надіслано запит на відкриття сторінки у клієнті Steam.")
+            except Exception as e:
+                self.sig_log.emit(f"  → Steam клієнт не відповів ({e}). Відкриваємо у веб-браузері...")
+
+            if not steam_opened:
+                try:
+                    import webbrowser
+                    webbrowser.open(web_url)
+                    self.sig_log.emit("  → Сторінку відкрито у браузері за замовчуванням.")
+                except Exception as ex:
+                    self.sig_log.emit(f"  → Не вдалося відкрити посилання: {ex}")
+
+            time.sleep(0.5)
 
             if not game_dir.exists():
                 self.sig_finished.emit(False, f"Папку Project Zomboid не знайдено: {game_dir}")
@@ -99,14 +125,29 @@ class InstallWorker(QThread):
 
                 step_name = step.get("name", f"Крок {idx}")
                 step_type = step.get("type", "copy_file")
-                source = Path(step.get("source"))
-                destination = Path(step.get("destination"))
-                overwrite = step.get("overwrite", True)
-                backup = step.get("backup", False)
 
                 pct = int(40 + (idx / total_steps) * 55)
                 self.sig_progress.emit(pct, f"Встановлення ({idx}/{total_steps}): {step_name}...")
                 self.sig_log.emit(f"Виконання кроку #{step.get('order')}: {step_name} [{step_type}]")
+
+                if step_type == "open_url":
+                    url = step.get("url") or step.get("fallback_url", "")
+                    if url:
+                        try:
+                            os.startfile(url)
+                            self.sig_log.emit(f"  → Відкрито посилання: {url}")
+                        except Exception:
+                            try:
+                                import webbrowser
+                                webbrowser.open(step.get("fallback_url", url))
+                            except Exception:
+                                pass
+                    continue
+
+                source = Path(step.get("source")) if step.get("source") else Path("")
+                destination = Path(step.get("destination")) if step.get("destination") else Path("")
+                overwrite = step.get("overwrite", True)
+                backup = step.get("backup", False)
 
                 if step_type == "copy_dir_contents":
                     if not source.exists() or not source.is_dir():

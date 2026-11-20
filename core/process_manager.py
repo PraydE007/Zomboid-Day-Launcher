@@ -94,6 +94,50 @@ class LogWatcherThread(QThread):
             self.sig_new_line.emit(f"[LogWatcher помилка]: {e}")
 
 
+class ModGuardScanThread(QThread):
+    sig_log = pyqtSignal(str)
+    sig_finished = pyqtSignal(bool, str)
+
+    def __init__(self, game_dir: Path, parent=None):
+        super().__init__(parent)
+        self.game_dir = Path(game_dir)
+
+    def run(self):
+        modguard_path = self.game_dir / "PZ-ModGuard.bat"
+        if not modguard_path.exists():
+            self.sig_log.emit(f"[PZ-ModGuard помилка]: Скрипт {modguard_path} не знайдено.")
+            self.sig_finished.emit(False, f"PZ-ModGuard.bat not found in {self.game_dir}")
+            return
+
+        self.sig_log.emit("🛡️ [PZ-ModGuard]: Початок сканування безпеки модів...")
+        self.sig_log.emit(f"  → Скрипт: {modguard_path}")
+        self.sig_log.emit(f"  → Робоча папка: {self.game_dir}")
+
+        try:
+            proc = subprocess.Popen(
+                ["cmd.exe", "/c", str(modguard_path)],
+                cwd=str(self.game_dir),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            for line in iter(proc.stdout.readline, ''):
+                if line:
+                    self.sig_log.emit(f"[PZ-ModGuard]: {line.rstrip()}")
+            proc.stdout.close()
+            code = proc.wait()
+            if code == 0:
+                self.sig_log.emit("🛡️ [PZ-ModGuard]: Сканування завершено успішно.")
+                self.sig_finished.emit(True, "Scan complete.")
+            else:
+                self.sig_log.emit(f"🛡️ [PZ-ModGuard]: Завершено з кодом {code}.")
+                self.sig_finished.emit(True, f"Finished with code {code}.")
+        except Exception as e:
+            self.sig_log.emit(f"[PZ-ModGuard виняток]: {e}")
+            self.sig_finished.emit(False, str(e))
+
+
 class ProcessManager(QObject):
     sig_log = pyqtSignal(str)
     sig_process_started = pyqtSignal(int, str)
@@ -247,3 +291,15 @@ class ProcessManager(QObject):
                 self.sig_log.emit(line)
         except Exception as e:
             self.sig_log.emit(f"[Помилка виконання команди]: {e}")
+
+    def run_modguard_scan_async(self, on_log=None, on_finished=None) -> ModGuardScanThread:
+        """Run PZ-ModGuard scan asynchronously in a background thread."""
+        game_dir = Path(self.config.game_dir)
+        worker = ModGuardScanThread(game_dir, parent=self)
+        if on_log:
+            worker.sig_log.connect(on_log)
+        if on_finished:
+            worker.sig_finished.connect(on_finished)
+        worker.sig_log.connect(lambda msg: self.sig_log.emit(msg))
+        worker.start()
+        return worker

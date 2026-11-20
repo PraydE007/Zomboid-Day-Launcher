@@ -45,12 +45,12 @@ class SystemDetector:
         checks.append({
             "id": "launcher_location",
             "title": t("chk_launcher_loc", lang),
-            "status": "ok" if launcher_beside else "warn",
+            "status": "ok" if launcher_beside else "fail",
             "passed": launcher_beside,
             "details": (
                 t("chk_launcher_loc_ok", lang, path=str(app_dir))
                 if launcher_beside else
-                t("chk_launcher_loc_warn", lang, app_dir=str(app_dir), game_dir=str(game_dir))
+                t("chk_launcher_loc_fail", lang, app_dir=str(app_dir), game_dir=str(game_dir))
             )
         })
 
@@ -135,7 +135,7 @@ class SystemDetector:
         passed_count = sum(1 for c in checks if c["passed"])
         total_count = len(checks)
         all_ok = (passed_count == total_count)
-        is_ready = game_exe_ok and jvm_ok and zb_ok
+        is_ready = launcher_beside and game_exe_ok and jvm_ok and zb_ok
 
         return {
             "checks": checks,

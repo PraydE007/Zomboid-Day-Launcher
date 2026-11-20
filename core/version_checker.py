@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from core.manifest_parser import ManifestParser
+from core.utils import get_app_dir
 from core.i18n import t
 
 
@@ -10,6 +11,7 @@ class VersionStatus:
     UPDATE_AVAILABLE = "UPDATE_AVAILABLE"
     NOT_INSTALLED = "NOT_INSTALLED"
     GAME_NOT_FOUND = "GAME_NOT_FOUND"
+    INVALID_PLACEMENT = "INVALID_PLACEMENT"
 
 
 class VersionChecker:
@@ -19,6 +21,21 @@ class VersionChecker:
     def check_status(self, lang: Optional[str] = None) -> Dict[str, Any]:
         if lang is None:
             lang = self.config.language
+
+        # 0. Check launcher placement strictly: must be beside ProjectZomboid64.exe
+        app_dir = get_app_dir()
+        game_exe_beside = (app_dir / "ProjectZomboid64.exe").exists()
+        if not game_exe_beside:
+            return {
+                "status": VersionStatus.INVALID_PLACEMENT,
+                "version": "",
+                "text": t("status_invalid_placement", lang),
+                "color": "#ef4444",
+                "is_installed": False,
+                "missing_files": [
+                    t("chk_launcher_loc_fail", lang, app_dir=str(app_dir), game_dir=str(self.config.game_dir))
+                ]
+            }
 
         game_dir_str = self.config.game_dir
         if not game_dir_str or not Path(game_dir_str).exists():

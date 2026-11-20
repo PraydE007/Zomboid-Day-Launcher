@@ -16,7 +16,7 @@ from PyQt6.QtGui import QIcon, QPixmap
 from core.config import ConfigManager
 from core.process_manager import ProcessManager
 from core.installer import InstallWorker
-from core.utils import get_resource_path
+from core.utils import get_resource_path, get_app_dir
 from core.i18n import t
 from ui.theme import MODERN_DARK_THEME
 from ui.tabs.home_tab import HomeTab
@@ -318,7 +318,18 @@ class MainWindow(QMainWindow):
 
     def _handle_start(self, is_debug: bool):
         lang = self.config.language
-        scan = self.config.get("scan_modguard_before_launch", False)
+        app_dir = get_app_dir()
+
+        # Prohibit launch strictly if launcher is not located in the game folder
+        if not (app_dir / "ProjectZomboid64.exe").exists():
+            QMessageBox.critical(
+                self,
+                t("err_launch_prohibited_title", lang),
+                t("err_launch_prohibited_msg", lang, app_dir=str(app_dir), game_dir=self.config.game_dir)
+            )
+            return
+
+        scan = self.config.get("scan_modguard_before_launch", True)
         ok = self.proc_mgr.launch_game(is_debug=is_debug, run_security_scan=scan)
         if ok:
             self.tab_home.refresh_status()

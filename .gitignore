@@ -9,3 +9,4 @@ launcher_config.json
 .vscode/
 .idea/
 release/*.exe
+release
