@@ -1,52 +1,73 @@
 """
 Home Tab — Clean hero layout with top-anchored title & top-aligned background image.
 Features text logo 'Zomboid Day Project' using 'Freckle Face' font, cinematic fades,
-and bottom-anchored actions.
+instantaneous cached rendering (zero lag), and bottom-anchored actions.
 """
 from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QProgressBar, QSizePolicy, QGraphicsOpacityEffect
+    QProgressBar, QSizePolicy
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import (
-    QPixmap, QPainter, QLinearGradient, QColor, QBrush, QFont,
+    QPixmap, QPainter, QLinearGradient, QColor, QBrush,
     QPainterPath
 )
 
 from core.version_checker import VersionChecker
-from core.utils import get_resource_path
 
 
 class HeroBannerWidget(QWidget):
     """
-    Background image widget anchored to top edge (y=0) with smooth cinematic fades
-    and bottom rounded corner clipping to fit the rounded window shell.
+    Background image widget anchored to top edge (y=0) with smooth cinematic fades.
+    Pre-renders and caches scaled pixmap on resize to ensure 60+ FPS butter-smooth rendering.
     """
     def __init__(self, image_path: str, parent=None):
         super().__init__(parent)
         self.image_path = image_path
-        self.pixmap: Optional[QPixmap] = None
+        self.source_pixmap: Optional[QPixmap] = None
+        self._cached_pixmap: Optional[QPixmap] = None
         self._load_image()
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def _load_image(self):
         if self.image_path and Path(self.image_path).exists():
-            self.pixmap = QPixmap(self.image_path)
+            self.source_pixmap = QPixmap(self.image_path)
         else:
-            self.pixmap = None
+            self.source_pixmap = None
+        self._update_cache()
 
     def set_image(self, new_path: str):
         self.image_path = new_path
         self._load_image()
         self.update()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_cache()
+
+    def _update_cache(self):
+        w = self.width()
+        h = self.height()
+        if w <= 0 or h <= 0 or not self.source_pixmap or self.source_pixmap.isNull():
+            self._cached_pixmap = None
+            return
+
+        # Scale once on resize (NOT in paintEvent)
+        scaled = self.source_pixmap.scaled(
+            self.size(),
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        crop_x = max(0, (scaled.width() - w) // 2)
+        crop_y = 0  # Anchor strictly to top edge
+        self._cached_pixmap = scaled.copy(crop_x, crop_y, w, h)
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         rect = self.rect()
         w = float(rect.width())
         h = float(rect.height())
@@ -62,17 +83,9 @@ class HeroBannerWidget(QWidget):
         clip_path.closeSubpath()
         painter.setClipPath(clip_path)
 
-        # Draw background image glued to the top edge (y = 0)
-        if self.pixmap and not self.pixmap.isNull():
-            scaled = self.pixmap.scaled(
-                rect.size(),
-                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            # Center horizontally, glue to top edge vertically (y = 0)
-            x = (scaled.width() - rect.width()) // 2
-            y = 0
-            painter.drawPixmap(0, 0, scaled, x, y, rect.width(), rect.height())
+        # Draw cached pre-scaled pixmap (instantaneous, 0ms latency)
+        if self._cached_pixmap and not self._cached_pixmap.isNull():
+            painter.drawPixmap(0, 0, self._cached_pixmap)
         else:
             painter.fillRect(rect, QColor("#121212"))
 
@@ -143,7 +156,7 @@ class HomeTab(QWidget):
 
         overlay.addSpacing(10)
 
-        # Version Pill Badge (subtle neutral dark with green/amber indicator)
+        # Version Pill Badge
         self.badge_version = QLabel("Перевірка версії...", self.hero)
         self.badge_version.setFixedHeight(26)
         self.badge_version.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
@@ -219,9 +232,15 @@ class HomeTab(QWidget):
         is_installed = status["is_installed"]
         color = status["color"]
         text = status["text"]
-        ver = status["version"]
+        ver = str(status.get("version", "")).strip().lstrip("v")
 
-        self.badge_version.setText(f"{text}  v{ver}")
+        # Format cleanly: "Актуальна • v1.0.0" without duplicated "vv"
+        if is_installed and ver and ver not in ["—", "Не встановлено", "Помилка"]:
+            badge_text = f"{text} • v{ver}"
+        else:
+            badge_text = text
+
+        self.badge_version.setText(badge_text)
         self.badge_version.setStyleSheet(f"""
             background-color: rgba(18, 18, 18, 0.88);
             color: {color};

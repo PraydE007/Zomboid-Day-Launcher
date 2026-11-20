@@ -20,7 +20,7 @@ class VersionChecker:
         if not game_dir_str or not Path(game_dir_str).exists():
             return {
                 "status": VersionStatus.GAME_NOT_FOUND,
-                "version": "—",
+                "version": "",
                 "text": "Папку гри не знайдено",
                 "color": "#ef4444",  # Red
                 "is_installed": False,
@@ -63,12 +63,12 @@ class VersionChecker:
             ]
             missing = [str(f) for f in standard_required if not f.exists()]
             installed = len(missing) == 0
-            installed_ver = self.config.get("installed_version", "") or ("1.0.0" if installed else "")
+            installed_ver = str(self.config.get("installed_version", "") or ("1.0.0" if installed else "")).lstrip("v")
 
             if not installed:
                 return {
                     "status": VersionStatus.NOT_INSTALLED,
-                    "version": "Не встановлено",
+                    "version": "",
                     "text": "Не встановлено",
                     "color": "#ef4444",
                     "is_installed": False,
@@ -76,9 +76,9 @@ class VersionChecker:
                 }
             return {
                 "status": VersionStatus.UP_TO_DATE,
-                "version": f"v{installed_ver}",
+                "version": installed_ver,
                 "text": "Актуальна",
-                "color": "#10b981",  # Green
+                "color": "#22c55e",  # Green
                 "is_installed": True,
                 "missing_files": []
             }
@@ -87,13 +87,13 @@ class VersionChecker:
         try:
             parser = ManifestParser(target_manifest, context)
             is_valid, missing = parser.validate_installation()
-            manifest_version = parser.version
-            saved_version = self.config.get("installed_version", "")
+            manifest_version = str(parser.version or "1.0.0").lstrip("v")
+            saved_version = str(self.config.get("installed_version", "")).lstrip("v")
 
             if not is_valid:
                 return {
                     "status": VersionStatus.NOT_INSTALLED,
-                    "version": f"v{manifest_version}",
+                    "version": manifest_version,
                     "text": "Не встановлено",
                     "color": "#ef4444",
                     "is_installed": False,
@@ -103,7 +103,7 @@ class VersionChecker:
             if saved_version and saved_version != manifest_version:
                 return {
                     "status": VersionStatus.UPDATE_AVAILABLE,
-                    "version": f"v{manifest_version}",
+                    "version": manifest_version,
                     "text": f"Доступне оновлення (v{manifest_version})",
                     "color": "#f59e0b",  # Amber
                     "is_installed": True,
@@ -112,16 +112,16 @@ class VersionChecker:
 
             return {
                 "status": VersionStatus.UP_TO_DATE,
-                "version": f"v{manifest_version}",
+                "version": manifest_version,
                 "text": "Актуальна",
-                "color": "#10b981",  # Green
+                "color": "#22c55e",  # Green
                 "is_installed": True,
                 "missing_files": []
             }
         except Exception as e:
             return {
                 "status": VersionStatus.NOT_INSTALLED,
-                "version": "Помилка",
+                "version": "",
                 "text": f"Помилка маніфесту: {e}",
                 "color": "#ef4444",
                 "is_installed": False,

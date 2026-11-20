@@ -22,9 +22,10 @@ class ConsoleTab(QWidget):
 
         self.proc_mgr.sig_log.connect(self.append_log)
 
+        # Polling timer with safe interval (5s) using fast non-blocking checks
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self._check_process_status)
-        self.status_timer.start(2000)
+        self.status_timer.start(5000)
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
