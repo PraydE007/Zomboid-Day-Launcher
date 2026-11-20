@@ -78,14 +78,14 @@ class HeroBannerWidget(QWidget):
         w = float(rect.width())
         h = float(rect.height())
 
-        # Clip bottom corners to match window shell border-radius (14px)
+        # Clip bottom-right corner to match window shell border-radius (14px)
         clip_path = QPainterPath()
         clip_path.moveTo(0, 0)
         clip_path.lineTo(w, 0)
         clip_path.lineTo(w, max(0.0, h - 14.0))
         clip_path.quadTo(w, h, max(0.0, w - 14.0), h)
-        clip_path.lineTo(14.0, h)
-        clip_path.quadTo(0, h, 0, max(0.0, h - 14.0))
+        clip_path.lineTo(0, h)
+        clip_path.lineTo(0, 0)
         clip_path.closeSubpath()
         painter.setClipPath(clip_path)
 

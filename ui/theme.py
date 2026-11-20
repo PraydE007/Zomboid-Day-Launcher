@@ -100,6 +100,53 @@ QScrollBar::handle:horizontal {
     color: #ffffff;
 }
 
+/* ===== LEFT HOTBAR DOCK (VERTICAL GAMING DOCK) ===== */
+#HotbarDock {
+    background-color: rgba(14, 14, 14, 0.78);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom-left-radius: 13px;
+}
+
+QToolButton.HotbarSlot {
+    background-color: rgba(255, 255, 255, 0.03);
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 6px 2px 4px 2px;
+}
+QToolButton.HotbarSlot:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #f3f4f6;
+}
+QToolButton.HotbarSlot:checked {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(34, 197, 94, 0.22), stop:1 rgba(34, 197, 94, 0.08));
+    border: 1px solid rgba(34, 197, 94, 0.55);
+    color: #4ade80;
+    font-weight: 800;
+}
+QToolButton.HotbarSlot:pressed {
+    background-color: rgba(34, 197, 94, 0.28);
+    border-color: #22c55e;
+}
+
+/* Hotbar Bottom Quick Action Buttons */
+QToolButton.HotbarQuickAction {
+    background-color: rgba(255, 255, 255, 0.03);
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    font-size: 13px;
+}
+QToolButton.HotbarQuickAction:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #22c55e;
+}
+
 /* ===== NAVIGATION BAR & TABS (SEMI-TRANSPARENT GLASS) ===== */
 #NavBar {
     background-color: rgba(18, 18, 18, 0.65);

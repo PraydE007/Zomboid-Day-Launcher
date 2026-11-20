@@ -22,6 +22,7 @@ from core.installer import InstallWorker
 from core.utils import get_resource_path, get_app_dir
 from core.i18n import t
 from ui.theme import MODERN_DARK_THEME
+from ui.widgets.hotbar import HotbarDock
 from ui.tabs.home_tab import HomeTab
 from ui.tabs.settings_tab import SettingsTab
 from ui.tabs.console_tab import ConsoleTab
@@ -160,39 +161,24 @@ class MainWindow(QMainWindow):
         shell_layout.setContentsMargins(0, 0, 0, 0)
         shell_layout.setSpacing(0)
 
-        # Title bar
+        # Title bar (top-anchored, spans full window width)
         self.title_bar = CustomTitleBar(self)
         shell_layout.addWidget(self.title_bar)
 
-        # Navigation Bar
-        nav = QWidget(self.shell)
-        nav.setObjectName("NavBar")
-        nav.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        nav_layout = QHBoxLayout(nav)
-        nav_layout.setContentsMargins(18, 5, 18, 5)
-        nav_layout.setSpacing(6)
+        # Body Container: Left Hotbar Dock + Right Stacked Tabs Area
+        self.body_widget = QWidget(self.shell)
+        self.body_widget.setObjectName("BodyWidget")
+        self.body_widget.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        body_layout = QHBoxLayout(self.body_widget)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(0)
 
-        self.btn_group = QButtonGroup(self)
-        self.btn_group.setExclusive(True)
+        # 1. Left Hotbar Dock with beautiful icons
+        self.hotbar = HotbarDock(self.config, self.body_widget)
+        body_layout.addWidget(self.hotbar)
 
-        lang = self.config.language
-        tab_names = [t("nav_home", lang), t("nav_settings", lang), t("nav_console", lang)]
-        self.nav_buttons = []
-        for idx, name in enumerate(tab_names):
-            btn = QPushButton(name, nav)
-            btn.setProperty("class", "NavTab")
-            btn.setCheckable(True)
-            if idx == 0:
-                btn.setChecked(True)
-            self.btn_group.addButton(btn, idx)
-            nav_layout.addWidget(btn)
-            self.nav_buttons.append(btn)
-
-        nav_layout.addStretch()
-        shell_layout.addWidget(nav)
-
-        # Stacked tabs
-        self.stack = QStackedWidget(self.shell)
+        # 2. Right Stacked Content Tabs
+        self.stack = QStackedWidget(self.body_widget)
         self.stack.setStyleSheet("background: transparent;")
         self.tab_home = HomeTab(self.config, self.proc_mgr, self)
         self.tab_settings = SettingsTab(self.config, self)
@@ -201,12 +187,15 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.tab_home)
         self.stack.addWidget(self.tab_settings)
         self.stack.addWidget(self.tab_console)
-        shell_layout.addWidget(self.stack)
+        body_layout.addWidget(self.stack)
+
+        shell_layout.addWidget(self.body_widget)
 
         outer_layout.addWidget(self.shell)
 
         # Signal connections
-        self.btn_group.idClicked.connect(self._on_tab_changed)
+        self.hotbar.sig_tab_changed.connect(self._on_tab_changed)
+        self.hotbar.sig_diag_clicked.connect(self.tab_home._open_diagnostics)
         self.tab_home.sig_install_clicked.connect(self._handle_install)
         self.tab_home.sig_start_clicked.connect(self._handle_start)
         self.tab_home.sig_language_changed.connect(self._handle_language_changed)
@@ -214,6 +203,7 @@ class MainWindow(QMainWindow):
         self.tab_settings.sig_hero_image_changed.connect(self.tab_home.hero.set_image)
 
     def _on_tab_changed(self, tab_id: int):
+        self.hotbar.set_current_tab(tab_id)
         target_widget = self.stack.widget(tab_id)
         self.stack.setCurrentIndex(tab_id)
         if tab_id == 0:
@@ -221,6 +211,21 @@ class MainWindow(QMainWindow):
 
         # Smooth fade-in transition
         self._fade_in_widget(target_widget)
+
+    def keyPressEvent(self, event):
+        # Hotkeys for switching hotbar tabs: Ctrl+1, Ctrl+2, Ctrl+3
+        modifiers = event.modifiers()
+        if modifiers & Qt.KeyboardModifier.ControlModifier:
+            if event.key() == Qt.Key.Key_1:
+                self._on_tab_changed(0)
+                return
+            elif event.key() == Qt.Key.Key_2:
+                self._on_tab_changed(1)
+                return
+            elif event.key() == Qt.Key.Key_3:
+                self._on_tab_changed(2)
+                return
+        super().keyPressEvent(event)
 
     def _fade_in_widget(self, widget: QWidget):
         effect = QGraphicsOpacityEffect(widget)
@@ -237,11 +242,7 @@ class MainWindow(QMainWindow):
 
     def retranslate_ui(self):
         lang = self.config.language
-        tab_keys = ["nav_home", "nav_settings", "nav_console"]
-        for idx, key in enumerate(tab_keys):
-            if idx < len(self.nav_buttons):
-                self.nav_buttons[idx].setText(t(key, lang))
-
+        self.hotbar.retranslate_ui(lang)
         self.tab_home.retranslate_ui()
         self._setup_system_tray()
 

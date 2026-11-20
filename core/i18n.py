@@ -19,6 +19,18 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "en": "Console",
         "uk": "Консоль"
     },
+    "hotbar_home": {
+        "en": "HOME",
+        "uk": "ГОЛОВНА"
+    },
+    "hotbar_settings": {
+        "en": "SETTINGS",
+        "uk": "НАЛАШТУВ."
+    },
+    "hotbar_console": {
+        "en": "CONSOLE",
+        "uk": "КОНСОЛЬ"
+    },
     "window_title": {
         "en": "Zomboid Day Launcher",
         "uk": "Zomboid Day Launcher"

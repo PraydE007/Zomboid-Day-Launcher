@@ -51,6 +51,7 @@ def build():
         "--hidden-import=PyQt6.QtCore",
         "--hidden-import=PyQt6.QtGui",
         "--hidden-import=PyQt6.QtWidgets",
+        "--hidden-import=PyQt6.QtSvg",
         "--hidden-import=psutil",
         "--hidden-import=PIL",
         str(main_script)
