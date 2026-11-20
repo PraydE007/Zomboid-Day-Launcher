@@ -1,8 +1,8 @@
 """
 Home Tab — Clean hero layout with top-anchored title & top-aligned background image.
 Features a stylish, dynamic game title with 3D drop shadow, crystal clear transparent
-text overlays, stable non-breaking buttons, and a bottom-right language selector
-(defaulting to English if not saved).
+text overlays, stable non-breaking buttons, DEBUG MODE, a refresh button with icon,
+system detection/verification, and a bottom-right language selector.
 """
 from pathlib import Path
 from typing import Optional
@@ -11,14 +11,16 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QProgressBar, QSizePolicy, QGraphicsDropShadowEffect, QComboBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import (
     QPixmap, QPainter, QLinearGradient, QColor, QBrush,
     QPainterPath
 )
 
 from core.version_checker import VersionChecker
+from core.detector import SystemDetector
 from core.i18n import t
+from ui.dialogs.diagnostics_dialog import DiagnosticsDialog
 
 
 class HeroBannerWidget(QWidget):
@@ -119,6 +121,8 @@ class HomeTab(QWidget):
         self.config = config_manager
         self.proc_mgr = process_manager
         self.version_checker = VersionChecker(self.config)
+        self.detector = SystemDetector(self.config)
+        self.last_diag = None
         self._setup_ui()
         self.refresh_status()
 
@@ -132,11 +136,11 @@ class HomeTab(QWidget):
 
         # Overlay layout: top-anchored header, bottom-anchored actions
         overlay = QVBoxLayout(self.hero)
-        overlay.setContentsMargins(40, 28, 40, 32)
+        overlay.setContentsMargins(40, 26, 40, 30)
         overlay.setSpacing(0)
 
         # ==============================================================
-        # 1. TOP-ANCHORED SECTION: Dynamic Styled Title & Version Badge
+        # 1. TOP-ANCHORED SECTION: Dynamic Styled Title & Diagnostics
         # ==============================================================
         self.lbl_title = QLabel(self.hero)
         self.lbl_title.setText(
@@ -144,7 +148,6 @@ class HomeTab(QWidget):
         )
         self.lbl_title.setStyleSheet("background: transparent; padding: 0; margin: 0;")
         
-        # 3D Drop shadow for AAA title effect (no background box required)
         title_shadow = QGraphicsDropShadowEffect(self.lbl_title)
         title_shadow.setBlurRadius(24)
         title_shadow.setColor(QColor(0, 0, 0, 240))
@@ -152,7 +155,7 @@ class HomeTab(QWidget):
         self.lbl_title.setGraphicsEffect(title_shadow)
         overlay.addWidget(self.lbl_title)
 
-        overlay.addSpacing(6)
+        overlay.addSpacing(4)
 
         # Subtitle / Tagline
         lang = self.config.language
@@ -172,9 +175,23 @@ class HomeTab(QWidget):
         self.lbl_subtitle.setGraphicsEffect(sub_shadow)
         overlay.addWidget(self.lbl_subtitle)
 
-        overlay.addSpacing(12)
+        overlay.addSpacing(10)
 
-        # Version Pill Badge (clean glass style with no dark box)
+        # Warning banner if launcher is not lying next to ProjectZomboid64.exe
+        self.banner_loc = QLabel(self.hero)
+        self.banner_loc.setObjectName("WarningBanner")
+        self.banner_loc.setText(t("banner_launcher_not_in_game", lang))
+        self.banner_loc.setWordWrap(True)
+        self.banner_loc.setVisible(False)
+        overlay.addWidget(self.banner_loc)
+
+        overlay.addSpacing(8)
+
+        # Status & Diagnostics Row
+        badge_row = QHBoxLayout()
+        badge_row.setSpacing(10)
+
+        # Version Pill Badge
         self.badge_version = QLabel(t("checking_version", lang), self.hero)
         self.badge_version.setFixedHeight(24)
         self.badge_version.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
@@ -187,7 +204,17 @@ class HomeTab(QWidget):
             font-size: 11px;
             font-weight: 600;
         """)
-        overlay.addWidget(self.badge_version)
+        badge_row.addWidget(self.badge_version)
+
+        # Quick Diagnostics Action Pill
+        self.btn_diag = QPushButton(f"🔍 {t('view_diagnostics', lang)}", self.hero)
+        self.btn_diag.setProperty("class", "SecondaryButton")
+        self.btn_diag.setFixedHeight(24)
+        self.btn_diag.clicked.connect(self._open_diagnostics)
+        badge_row.addWidget(self.btn_diag)
+
+        badge_row.addStretch()
+        overlay.addLayout(badge_row)
 
         # ==============================================================
         # STRETCH pushes action buttons to the bottom
@@ -198,13 +225,13 @@ class HomeTab(QWidget):
         # 2. BOTTOM-ANCHORED SECTION: Action buttons & Language Selector
         # ==============================================================
         btn_row = QHBoxLayout()
-        btn_row.setSpacing(12)
+        btn_row.setSpacing(10)
 
         # Install Button
         self.btn_install = QPushButton(t("btn_install", lang), self.hero)
         self.btn_install.setProperty("class", "PrimaryButton")
         self.btn_install.setMinimumHeight(48)
-        self.btn_install.setMinimumWidth(190)
+        self.btn_install.setMinimumWidth(180)
         self.btn_install.clicked.connect(self.sig_install_clicked.emit)
         btn_row.addWidget(self.btn_install)
 
@@ -212,17 +239,25 @@ class HomeTab(QWidget):
         self.btn_start = QPushButton(t("btn_play", lang), self.hero)
         self.btn_start.setProperty("class", "PrimaryButton")
         self.btn_start.setMinimumHeight(48)
-        self.btn_start.setMinimumWidth(190)
+        self.btn_start.setMinimumWidth(180)
         self.btn_start.clicked.connect(lambda: self.sig_start_clicked.emit(False))
         btn_row.addWidget(self.btn_start)
 
-        # Debug Button
+        # Debug Mode Button (Renamed to DEBUG MODE)
         self.btn_debug_start = QPushButton(t("btn_debug", lang), self.hero)
         self.btn_debug_start.setProperty("class", "DebugButton")
         self.btn_debug_start.setMinimumHeight(48)
-        self.btn_debug_start.setMinimumWidth(100)
+        self.btn_debug_start.setMinimumWidth(130)
         self.btn_debug_start.clicked.connect(lambda: self.sig_start_clicked.emit(True))
         btn_row.addWidget(self.btn_debug_start)
+
+        # Refresh Button with Icon right after DEBUG MODE
+        self.btn_refresh = QPushButton("⟳", self.hero)
+        self.btn_refresh.setProperty("class", "RefreshButton")
+        self.btn_refresh.setFixedSize(48, 48)
+        self.btn_refresh.setToolTip(t("btn_refresh_tooltip", lang))
+        self.btn_refresh.clicked.connect(self._handle_manual_refresh)
+        btn_row.addWidget(self.btn_refresh)
 
         btn_row.addStretch()
 
@@ -271,17 +306,42 @@ class HomeTab(QWidget):
             self.sig_language_changed.emit(new_lang)
             self.retranslate_ui()
 
+    def _handle_manual_refresh(self):
+        """User clicked refresh button: animate icon, re-run diagnostics & update status."""
+        self.btn_refresh.setText("⏳")
+        self.refresh_status()
+        QTimer.singleShot(350, lambda: self.btn_refresh.setText("⟳"))
+
+    def _open_diagnostics(self):
+        if not self.last_diag:
+            self.last_diag = self.detector.run_diagnostics(self.config.language)
+        dlg = DiagnosticsDialog(self.last_diag, self.config.language, self)
+        dlg.exec()
+
     def retranslate_ui(self):
         lang = self.config.language
         self.lbl_subtitle.setText(t("subtitle", lang))
         self.btn_install.setText(t("btn_install", lang))
         self.btn_start.setText(t("btn_play", lang))
         self.btn_debug_start.setText(t("btn_debug", lang))
+        self.btn_refresh.setToolTip(t("btn_refresh_tooltip", lang))
+        self.btn_diag.setText(f"🔍 {t('view_diagnostics', lang)}")
+        self.banner_loc.setText(t("banner_launcher_not_in_game", lang))
         self.refresh_status()
 
     def refresh_status(self):
         lang = self.config.language
         status = self.version_checker.check_status(lang)
+        self.last_diag = self.detector.run_diagnostics(lang)
+
+        # 1. Launcher Location Warning Banner
+        if not self.last_diag["launcher_beside_game"]:
+            self.banner_loc.setText(t("banner_launcher_not_in_game", lang))
+            self.banner_loc.setVisible(True)
+        else:
+            self.banner_loc.setVisible(False)
+
+        # 2. Version badge & status
         is_installed = status["is_installed"]
         color = status["color"]
         text = status["text"]
@@ -304,6 +364,7 @@ class HomeTab(QWidget):
             font-weight: 600;
         """)
 
+        # Button toggles
         if not is_installed:
             self.btn_install.setVisible(True)
             self.btn_start.setVisible(False)

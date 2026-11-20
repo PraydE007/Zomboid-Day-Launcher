@@ -125,6 +125,19 @@ class MainWindow(QMainWindow):
         self._setup_ui()
         self._setup_system_tray()
         self.retranslate_ui()
+        self._log_startup_diagnostics()
+
+    def _log_startup_diagnostics(self):
+        diag = self.tab_home.last_diag or self.tab_home.detector.run_diagnostics(self.config.language)
+        self.tab_console.append_log("══════════════════════════════════════════════════")
+        self.tab_console.append_log("   ZOMBOID DAY LAUNCHER — SYSTEM DIAGNOSTICS      ")
+        self.tab_console.append_log("══════════════════════════════════════════════════")
+        for chk in diag.get("checks", []):
+            mark = "[✓]" if chk["status"] == "ok" else ("[⚠]" if chk["status"] == "warn" else "[✗]")
+            self.tab_console.append_log(f"{mark} {chk['title']}: {chk['details']}")
+        score = f"{diag['passed_count']}/{diag['total_count']} checks passed"
+        self.tab_console.append_log(f"Status: {score} | Ready: {diag['is_ready']}")
+        self.tab_console.append_log("══════════════════════════════════════════════════")
 
     def _setup_ui(self):
         # Outermost container with border-radius (MainShell)

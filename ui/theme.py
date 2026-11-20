@@ -168,6 +168,39 @@ QPushButton.DebugButton:pressed {
     background: #141414;
 }
 
+QPushButton.RefreshButton {
+    background: rgba(22, 22, 22, 0.7);
+    color: #a3a3a3;
+    border: 1px solid #383838;
+    border-radius: 6px;
+    font-size: 17px;
+    font-weight: 700;
+    min-width: 48px;
+    min-height: 48px;
+    max-width: 48px;
+    max-height: 48px;
+    text-align: center;
+}
+QPushButton.RefreshButton:hover {
+    color: #22c55e;
+    border-color: #22c55e;
+    background: rgba(38, 38, 38, 0.85);
+}
+QPushButton.RefreshButton:pressed {
+    background: #141414;
+    color: #16a34a;
+}
+
+#WarningBanner {
+    background-color: rgba(30, 20, 5, 0.85);
+    border: 1px solid #b45309;
+    border-radius: 6px;
+    color: #fbbf24;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
 QPushButton.SecondaryButton {
     background: #1a1a1a;
     color: #a3a3a3;

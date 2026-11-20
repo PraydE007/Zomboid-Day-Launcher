@@ -42,8 +42,56 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "uk": "ГРАТИ"
     },
     "btn_debug": {
-        "en": "DEBUG",
-        "uk": "DEBUG"
+        "en": "DEBUG MODE",
+        "uk": "DEBUG MODE"
+    },
+    "btn_refresh_tooltip": {
+        "en": "Refresh status & run system diagnostics",
+        "uk": "Оновити статус та виконати діагностику системи"
+    },
+    "banner_launcher_not_in_game": {
+        "en": "⚠️ Launcher is not beside ProjectZomboid64.exe. For proper operation, place it in the game directory.",
+        "uk": "⚠️ Лаунчер не лежить біля ProjectZomboid64.exe. Рекомендується помістити його в папку гри."
+    },
+    "chk_launcher_loc": {
+        "en": "Launcher Directory Placement",
+        "uk": "Розміщення лаунчера в папці гри"
+    },
+    "chk_launcher_loc_ok": {
+        "en": "Located beside ProjectZomboid64.exe ({path})",
+        "uk": "Знаходиться поруч із ProjectZomboid64.exe ({path})"
+    },
+    "chk_launcher_loc_warn": {
+        "en": "Running from: {app_dir}. Game folder: {game_dir}",
+        "uk": "Запущено з: {app_dir}. Папка гри: {game_dir}"
+    },
+    "chk_game_exe": {
+        "en": "Game Binary (ProjectZomboid64.exe)",
+        "uk": "Виконуваний файл гри (ProjectZomboid64.exe)"
+    },
+    "chk_jvm_scripts": {
+        "en": "Optimized JVM Startup Scripts",
+        "uk": "Оптимізовані JVM скрипти запуску"
+    },
+    "chk_zombie_buddy": {
+        "en": "ZombieBuddy & zbNative DLL",
+        "uk": "ZombieBuddy та zbNative DLL"
+    },
+    "chk_modguard": {
+        "en": "PZ-ModGuard Security Scanner",
+        "uk": "PZ-ModGuard сканер безпеки"
+    },
+    "chk_user_profile": {
+        "en": "User Zomboid Profile (Mods & Saves)",
+        "uk": "Папка профілю Zomboid (Моди та збереження)"
+    },
+    "all_systems_verified": {
+        "en": "All systems verified",
+        "uk": "Всі системи перевірено"
+    },
+    "view_diagnostics": {
+        "en": "Diagnostics",
+        "uk": "Діагностика"
     },
 
     # Version Statuses

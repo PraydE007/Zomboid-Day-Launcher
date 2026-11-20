@@ -48,7 +48,12 @@ DEFAULT_REPOSITORIES = [
 
 
 def detect_steam_pz_path() -> str:
-    """Auto-detect Project Zomboid installation directory via Steam registry and common paths."""
+    """Auto-detect Project Zomboid installation directory via Steam registry, local folder, and common paths."""
+    # 0. Check if launcher is located right inside Project Zomboid directory
+    app_dir = get_app_dir()
+    if (app_dir / "ProjectZomboid64.exe").exists():
+        return str(app_dir)
+
     candidates = []
 
     # 1. Check Windows Registry for Steam install path
