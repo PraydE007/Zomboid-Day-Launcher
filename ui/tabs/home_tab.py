@@ -123,7 +123,7 @@ class StyledTitleWidget(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        self.setFixedHeight(88)
+        self.setFixedHeight(68)
 
     def set_subtitle(self, text: str):
         self.subtitle_text = text
@@ -137,7 +137,8 @@ class StyledTitleWidget(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
 
-        title_font = QFont("Freckle Face", 48)
+        # Smaller title font (size 34)
+        title_font = QFont("Freckle Face", 34)
         title_font.setWeight(QFont.Weight.Black)
         painter.setFont(title_font)
 
@@ -148,11 +149,10 @@ class StyledTitleWidget(QWidget):
 
         base_y = fm.ascent() + 1
 
-        # Deep 3D Drop Shadows
+        # Deep 3D Drop Shadows adapted for smaller size
         shadow_layers = [
-            (0, 4, QColor(0, 0, 0, 160)),
-            (1, 3, QColor(0, 0, 0, 200)),
-            (0, 2, QColor(0, 0, 0, 240)),
+            (0, 3, QColor(0, 0, 0, 160)),
+            (1, 2, QColor(0, 0, 0, 210)),
             (0, 1, QColor(0, 0, 0, 255)),
         ]
         full_text = part1 + part2
@@ -170,19 +170,19 @@ class StyledTitleWidget(QWidget):
 
         # 2. Subtitle Tagline
         if self.subtitle_text:
-            sub_font = QFont("Segoe UI", 10)
+            sub_font = QFont("Segoe UI", 9)
             sub_font.setWeight(QFont.Weight.Bold)
-            sub_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.5)
+            sub_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.2)
             painter.setFont(sub_font)
             sub_fm = painter.fontMetrics()
-            sub_y = base_y + sub_fm.height() + 8
+            sub_y = base_y + sub_fm.height() + 4
 
             # Subtitle Shadow
             painter.setPen(QColor(0, 0, 0, 220))
             painter.drawText(1, sub_y + 1, self.subtitle_text)
 
             # Subtitle Text
-            painter.setPen(QColor("#d4d4d4"))
+            painter.setPen(QColor("#a3a3a3"))
             painter.drawText(0, sub_y, self.subtitle_text)
 
 
