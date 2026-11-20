@@ -11,6 +11,7 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from core.config import ConfigManager
+from core.utils import get_resource_path, get_app_dir
 from ui.main_window import MainWindow
 
 
@@ -24,12 +25,12 @@ def main():
     app.setOrganizationName("ZomboidDay")
 
     # Load custom Project Zomboid font if available
-    font_path = BASE_DIR / "font" / "FreckleFaceRegular.ttf"
+    font_path = get_resource_path("font/FreckleFaceRegular.ttf")
     if font_path.exists():
         QFontDatabase.addApplicationFont(str(font_path))
 
     # Initialize configuration
-    config = ConfigManager(base_dir=BASE_DIR)
+    config = ConfigManager(base_dir=get_app_dir())
 
     # Launch Main Window
     window = MainWindow(config)

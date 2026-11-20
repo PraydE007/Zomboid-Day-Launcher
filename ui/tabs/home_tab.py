@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QPixmap, QPainter, QLinearGradient, QColor, QFont, QBrush
 
 from core.version_checker import VersionChecker, VersionStatus
+from core.utils import get_resource_path
 
 
 class HeroBannerWidget(QFrame):
@@ -108,7 +109,7 @@ class HomeTab(QWidget):
         hero_layout.addStretch()
 
         # Title Logo & Subtitle inside Hero
-        logo_path = Path(self.config.base_dir) / "assets" / "text-logo.png"
+        logo_path = get_resource_path("assets/text-logo.png")
         if logo_path.exists():
             self.lbl_logo = QLabel(self.hero)
             pix = QPixmap(str(logo_path))

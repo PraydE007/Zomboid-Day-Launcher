@@ -11,6 +11,7 @@ from PyQt6.QtGui import QIcon, QPixmap
 from core.config import ConfigManager
 from core.process_manager import ProcessManager
 from core.installer import InstallWorker
+from core.utils import get_resource_path
 from ui.theme import MODERN_DARK_THEME
 from ui.tabs.home_tab import HomeTab
 from ui.tabs.settings_tab import SettingsTab
@@ -30,7 +31,7 @@ class CustomTitleBar(QWidget):
         layout.setSpacing(8)
 
         # App Icon
-        icon_path = Path(__file__).resolve().parent.parent / "assets" / "icon.png"
+        icon_path = get_resource_path("assets/icon.png")
         if icon_path.exists():
             lbl_icon = QLabel(self)
             pix = QPixmap(str(icon_path)).scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
@@ -38,7 +39,7 @@ class CustomTitleBar(QWidget):
             layout.addWidget(lbl_icon)
 
         # Title Logo or Label
-        logo_path = Path(__file__).resolve().parent.parent / "assets" / "text-logo.png"
+        logo_path = get_resource_path("assets/text-logo.png")
         if logo_path.exists():
             lbl_title_logo = QLabel(self)
             pix = QPixmap(str(logo_path))
@@ -109,7 +110,7 @@ class MainWindow(QMainWindow):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
 
         # Set App Icon
-        icon_path = Path(self.config.base_dir) / "assets" / "icon.png"
+        icon_path = get_resource_path("assets/icon.png")
         if icon_path.exists():
             self.app_icon = QIcon(str(icon_path))
             self.setWindowIcon(self.app_icon)

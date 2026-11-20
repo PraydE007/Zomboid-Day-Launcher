@@ -4,6 +4,7 @@ import json
 import winreg
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+from core.utils import get_resource_path, get_app_dir
 
 CONFIG_FILE_NAME = "launcher_config.json"
 
@@ -106,7 +107,7 @@ def get_default_hero_image() -> str:
     preferred = Path(r"D:\Pictures\Anime Zomboid Day.png")
     if preferred.exists():
         return str(preferred)
-    local_hero = Path(__file__).resolve().parent.parent / "assets" / "hero.png"
+    local_hero = get_resource_path("assets/hero.png")
     if local_hero.exists():
         return str(local_hero)
     return str(preferred)
@@ -115,7 +116,7 @@ def get_default_hero_image() -> str:
 class ConfigManager:
     def __init__(self, base_dir: Optional[Path] = None):
         if base_dir is None:
-            self.base_dir = Path(__file__).resolve().parent.parent
+            self.base_dir = get_app_dir()
         else:
             self.base_dir = base_dir
 
