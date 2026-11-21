@@ -105,9 +105,10 @@ def _fast_find_process(target_names: Set[str], game_dir: Optional[str] = None) -
 class LogWatcherThread(QThread):
     sig_new_line = pyqtSignal(str)
 
-    def __init__(self, log_file: Path, parent=None):
+    def __init__(self, log_file: Path, start_offset: int = 0, parent=None):
         super().__init__(parent)
         self.log_file = Path(log_file)
+        self.start_offset = start_offset
         self._running = True
 
     def stop(self):
@@ -123,7 +124,7 @@ class LogWatcherThread(QThread):
 
         try:
             with open(self.log_file, "r", encoding="utf-8", errors="replace") as f:
-                f.seek(0, os.SEEK_END)
+                f.seek(self.start_offset)
                 while self._running:
                     line = f.readline()
                     if line:
@@ -258,9 +259,10 @@ class LaunchCrashWatcher(QThread):
     sig_launch_failed = pyqtSignal(str)
     sig_launch_succeeded = pyqtSignal(int)
 
-    def __init__(self, process_manager, parent=None):
+    def __init__(self, process_manager, start_offset: int = 0, parent=None):
         super().__init__(parent)
         self.mgr = process_manager
+        self.start_offset = start_offset
         self._running = True
 
     def stop(self):
@@ -284,23 +286,26 @@ class LaunchCrashWatcher(QThread):
         while self._running and (time.time() - start_time < 6.5):
             time.sleep(0.3)
 
-            # 1. Scan session log for fatal errors
+            # 1. Scan session log strictly for fatal errors written during this session
             if self.mgr.session_log_path.exists():
                 try:
                     with open(self.mgr.session_log_path, "r", encoding="utf-8", errors="ignore") as f:
-                        lines = f.readlines()
-                    for i, line in enumerate(lines[-25:]):
-                        l_low = line.lower()
-                        for pat in fatal_patterns:
-                            if pat in l_low:
-                                err_line = line.strip()
-                                # Include adjacent error line for full context if available
-                                if i + 1 < len(lines[-25:]):
-                                    next_line = lines[-25:][i + 1].strip()
-                                    if any(p in next_line.lower() for p in fatal_patterns) or "error" in next_line.lower() or "exception" in next_line.lower():
-                                        err_line = f"{err_line}\n{next_line}"
-                                self.sig_launch_failed.emit(err_line)
-                                return
+                        f.seek(self.start_offset)
+                        new_content = f.read()
+                    if new_content:
+                        lines = new_content.splitlines()
+                        for i, line in enumerate(lines):
+                            l_low = line.lower()
+                            for pat in fatal_patterns:
+                                if pat in l_low:
+                                    err_line = line.strip()
+                                    # Include adjacent error line for full context if available
+                                    if i + 1 < len(lines):
+                                        next_line = lines[i + 1].strip()
+                                        if any(p in next_line.lower() for p in fatal_patterns) or "error" in next_line.lower() or "exception" in next_line.lower():
+                                            err_line = f"{err_line}\n{next_line}"
+                                    self.sig_launch_failed.emit(err_line)
+                                    return
                 except Exception:
                     pass
 
@@ -423,10 +428,45 @@ class ProcessManager(QObject):
                 except Exception as e:
                     self.sig_log.emit(f"[PZ-ModGuard попередження]: {e}")
 
+        # Stop and wait any previous watchers first to release file handles
+        if self.watcher:
+            self.watcher.stop()
+            self.watcher.wait()
+            self.watcher = None
+
+        if self.launch_watcher:
+            self.launch_watcher.stop()
+            self.launch_watcher.wait()
+            self.launch_watcher = None
+
+        # Terminate any previously running batch process from launcher
+        if self.batch_proc and self.batch_proc.poll() is None:
+            try:
+                subprocess.run(f"taskkill /F /PID {self.batch_proc.pid} /T", shell=True, capture_output=True)
+            except Exception:
+                pass
+            self.batch_proc = None
+
+        session_header = f"\n=== Сесія запуску {time.strftime('%Y-%m-%d %H:%M:%S')} [{mode_name}] ===\n"
+        start_offset = 0
         try:
-            self.session_log_path.write_text(f"=== Сесія запуску {time.strftime('%Y-%m-%d %H:%M:%S')} [{mode_name}] ===\n", encoding="utf-8")
+            self.session_log_path.write_text(session_header, encoding="utf-8")
+            start_offset = 0
         except Exception:
-            pass
+            try:
+                if self.session_log_path.exists():
+                    start_offset = self.session_log_path.stat().st_size
+                with open(self.session_log_path, "a", encoding="utf-8") as f:
+                    f.write(session_header)
+                    start_offset = f.tell()
+            except Exception:
+                # Fallback to unique session file if existing is locked by outside process
+                self.session_log_path = Path(self.config.base_dir) / "logs" / f"session_{int(time.time())}.log"
+                try:
+                    self.session_log_path.write_text(session_header, encoding="utf-8")
+                    start_offset = 0
+                except Exception:
+                    pass
 
         # Setup environment with jre64\bin, win64, and game root on PATH
         env = os.environ.copy()
@@ -442,7 +482,7 @@ class ProcessManager(QObject):
         # Add '< nul' to ensure batch files never hang on PAUSE
         wrapper_cmd = f'cmd.exe /c "call "{bat_path}" < nul >> "{self.session_log_path}" 2>&1"'
 
-        self.sig_log.emit(f"Запуск гри: {bat_path.name} ({mode_name})")
+        self.sig_log.emit(f"Запуск гри: {bat_path} ({mode_name})")
         self.sig_log.emit(f"Папка виконання: {game_dir}")
 
         try:
@@ -450,6 +490,7 @@ class ProcessManager(QObject):
                 wrapper_cmd,
                 cwd=str(game_dir),
                 env=env,
+                stdin=subprocess.DEVNULL,
                 shell=False,
                 creationflags=creationflags
             )
@@ -457,20 +498,12 @@ class ProcessManager(QObject):
             self._last_status = True
             self.sig_log.emit(f"Процес запущено (батнік PID: {self.batch_proc.pid})")
 
-            if self.watcher:
-                self.watcher.stop()
-                self.watcher.wait()
-
-            self.watcher = LogWatcherThread(self.session_log_path)
+            self.watcher = LogWatcherThread(self.session_log_path, start_offset=start_offset)
             self.watcher.sig_new_line.connect(lambda line: self.sig_log.emit(line))
             self.watcher.start()
 
-            # Start launch crash watcher
-            if self.launch_watcher:
-                self.launch_watcher.stop()
-                self.launch_watcher.wait()
-
-            self.launch_watcher = LaunchCrashWatcher(self)
+            # Start launch crash watcher strictly tracking this session
+            self.launch_watcher = LaunchCrashWatcher(self, start_offset=start_offset)
             self.launch_watcher.sig_launch_failed.connect(self._on_launch_failed)
             self.launch_watcher.sig_launch_succeeded.connect(self._on_launch_succeeded)
             self.launch_watcher.start()
