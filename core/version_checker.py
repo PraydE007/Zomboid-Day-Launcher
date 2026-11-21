@@ -90,9 +90,10 @@ class VersionChecker:
 
         if not target_manifest:
             standard_required = [
-                game_dir / "ProjectZomboid64.bat",
-                game_dir / "ProjectZomboid64ShowConsole.bat",
-                game_dir / "ZombieBuddy.jar"
+                (base_dir / "ProjectZomboid64.bat") if (base_dir / "ProjectZomboid64.bat").exists() else (game_dir / "ProjectZomboid64.bat"),
+                (base_dir / "ProjectZomboid64ShowConsole.bat") if (base_dir / "ProjectZomboid64ShowConsole.bat").exists() else (game_dir / "ProjectZomboid64ShowConsole.bat"),
+                game_dir / "ZombieBuddy.jar",
+                game_dir / "zbNative.dll"
             ]
             missing = [str(f) for f in standard_required if not f.exists()]
             installed = len(missing) == 0

@@ -70,9 +70,9 @@ class SystemDetector:
         })
 
         # 3. Optimized JVM Launch Scripts
-        bat_normal = game_dir / "ProjectZomboid64.bat"
-        bat_debug = game_dir / "ProjectZomboid64ShowConsole.bat"
-        json_cfg = game_dir / "ProjectZomboid64.json"
+        data_dir = Path(self.config.base_dir)
+        bat_normal = data_dir / "ProjectZomboid64.bat" if (data_dir / "ProjectZomboid64.bat").exists() else game_dir / "ProjectZomboid64.bat"
+        bat_debug = data_dir / "ProjectZomboid64ShowConsole.bat" if (data_dir / "ProjectZomboid64ShowConsole.bat").exists() else game_dir / "ProjectZomboid64ShowConsole.bat"
         jvm_ok = bat_normal.exists() and bat_debug.exists()
         checks.append({
             "id": "jvm_scripts",

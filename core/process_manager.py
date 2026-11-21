@@ -389,14 +389,17 @@ class ProcessManager(QObject):
             bat_name = "ProjectZomboid64.bat"
             mode_name = "Стандартний запуск"
 
-        bat_path = game_dir / bat_name
+        data_dir = Path(self.config.base_dir)
+        bat_path = data_dir / bat_name
         if not bat_path.exists():
-            exe_path = game_dir / "ProjectZomboid64.exe"
-            if exe_path.exists():
-                bat_path = exe_path
-            else:
-                self.sig_log.emit(f"[Помилка]: Не знайдено {bat_name} або ProjectZomboid64.exe у {game_dir}")
-                return False
+            bat_path = game_dir / bat_name
+            if not bat_path.exists():
+                exe_path = game_dir / "ProjectZomboid64.exe"
+                if exe_path.exists():
+                    bat_path = exe_path
+                else:
+                    self.sig_log.emit(f"[Помилка]: Не знайдено {bat_name} у {data_dir} або {game_dir}")
+                    return False
 
         if run_security_scan:
             modguard_path = game_dir / "PZ-ModGuard.bat"

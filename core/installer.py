@@ -271,7 +271,7 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
             copied = []
             for item in source_dir.iterdir():
                 if item.is_file():
-                    target = game_dir / item.name
+                    target = data_dir / item.name
                     if target.exists():
                         try:
                             shutil.copy2(target, target.with_suffix(target.suffix + ".bak"))
@@ -279,8 +279,8 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                             pass
                     shutil.copy2(item, target)
                     copied.append(item.name)
-            log(f"Встановлено JVM скрипти: {', '.join(copied)}")
-            return True, f"Успішно встановлено: {', '.join(copied)}"
+            log(f"Встановлено JVM скрипти у папку лаунчера ({data_dir.name}): {', '.join(copied)}")
+            return True, f"Успішно встановлено у {data_dir.name}: {', '.join(copied)}"
         except Exception as e:
             return False, f"Помилка копіювання: {e}"
 
