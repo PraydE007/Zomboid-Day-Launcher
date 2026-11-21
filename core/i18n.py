@@ -134,8 +134,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "uk": "Запуск заборонено"
     },
     "err_launch_prohibited_msg": {
-        "en": "The launcher is not located in the Project Zomboid directory beside ProjectZomboid64.exe.\n\nCurrent location: {app_dir}\nGame directory: {game_dir}\n\nRunning the game from an external location is prohibited for safety and integrity reasons.\nPlease move Zomboid-Day-Launcher.exe into the game folder!",
-        "uk": "Лаунчер знаходиться не в папці гри Project Zomboid поруч із ProjectZomboid64.exe.\n\nПоточне розміщення: {app_dir}\nПапка гри: {game_dir}\n\nЗапуск гри із зовнішнього розташування суворо заборонено!\nБудь ласка, перемістіть файл Zomboid-Day-Launcher.exe у папку гри поруч із ProjectZomboid64.exe!"
+        "en": "The launcher is not located in the Project Zomboid directory beside ProjectZomboid64.exe.\n\nCurrent location: {app_dir}\n\nRunning the game from an external location is prohibited.\nPlease move Zomboid-Day-Launcher.exe directly into the Project Zomboid game folder (beside ProjectZomboid64.exe) and launch it there!",
+        "uk": "Лаунчер знаходиться не в папці гри поруч із ProjectZomboid64.exe.\n\nПоточне розміщення: {app_dir}\n\nЗапуск гри із зовнішнього розташування суворо заборонено!\nБудь ласка, перемістіть файл Zomboid-Day-Launcher.exe безпосередньо у папку гри Project Zomboid (поруч із ProjectZomboid64.exe) і запустіть його звідти!"
     },
     "err_launch_prohibited_tooltip": {
         "en": "Launch is blocked: Launcher must be in the game folder beside ProjectZomboid64.exe",
@@ -158,8 +158,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "uk": "Запущено з: {app_dir}. Папка гри: {game_dir}"
     },
     "chk_launcher_loc_fail": {
-        "en": "Invalid location! Running from: {app_dir}. Must be beside ProjectZomboid64.exe in: {game_dir}",
-        "uk": "Неправильне розміщення! Запущено з: {app_dir}. Має бути біля ProjectZomboid64.exe у: {game_dir}"
+        "en": "Invalid location! Running from: {app_dir}. Must be placed directly in the game folder beside ProjectZomboid64.exe.",
+        "uk": "Неправильне розміщення! Запущено з: {app_dir}. Має бути безпосередньо в папці гри біля ProjectZomboid64.exe."
     },
     "chk_game_exe": {
         "en": "Game Binary (ProjectZomboid64.exe)",

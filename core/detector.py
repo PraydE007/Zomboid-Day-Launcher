@@ -50,7 +50,7 @@ class SystemDetector:
             "details": (
                 t("chk_launcher_loc_ok", lang, path=str(app_dir))
                 if launcher_beside else
-                t("chk_launcher_loc_fail", lang, app_dir=str(app_dir), game_dir=str(game_dir))
+                t("chk_launcher_loc_fail", lang, app_dir=str(app_dir))
             )
         })
 

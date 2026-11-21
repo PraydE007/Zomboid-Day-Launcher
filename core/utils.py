@@ -25,3 +25,21 @@ def get_app_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent
+
+
+def is_in_game_dir() -> bool:
+    """Check if launcher is located right inside the Project Zomboid game directory."""
+    return (get_app_dir() / "ProjectZomboid64.exe").exists()
+
+
+def get_zd_data_dir() -> Path | None:
+    """
+    Return Path to zd-launcher directory ONLY if launcher is running in the game directory.
+    If not in game directory, returns None and does NOT create the directory.
+    """
+    if is_in_game_dir():
+        zd_dir = get_app_dir() / "zd-launcher"
+        zd_dir.mkdir(parents=True, exist_ok=True)
+        return zd_dir
+    return None
+

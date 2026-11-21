@@ -218,6 +218,7 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
       - 'zombie_buddy' / 'step_zombie_buddy'
       - 'modguard' / 'step_modguard'
       - 'steam_workshop' / 'step_steam_workshop'
+    Automatically syncs and downloads files from GitHub repositories if local files are missing.
     """
     def log(msg: str):
         if log_callback:
@@ -227,14 +228,22 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
     if not game_dir.exists():
         return False, f"Game folder not found: {game_dir}"
 
-    base_dir = get_app_dir()
+    data_dir = Path(config_manager.base_dir)
+    cache_dir = data_dir / "cache" / "repos"
+
+    context = {
+        "GAME_DIR": str(game_dir),
+        "USER_ZOMBOID_DIR": str(config_manager.user_zomboid_dir),
+        "LAUNCHER_DIR": str(data_dir)
+    }
 
     # 1. JVM Startup Scripts
     if step_id in ("jvm_scripts", "step_game_configs"):
         candidates = [
-            Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\game-configuration-files"),
-            base_dir / "cache" / "repos" / "zomboid-day-files" / "game-configuration-files",
-            base_dir / "game-configuration-files"
+            data_dir / "cache" / "repos" / "zomboid-day-files" / "game-configuration-files",
+            get_app_dir() / "cache" / "repos" / "zomboid-day-files" / "game-configuration-files",
+            get_app_dir() / "game-configuration-files",
+            Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\game-configuration-files")
         ]
         source_dir = None
         for c in candidates:
@@ -243,7 +252,20 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                 break
 
         if not source_dir:
-            return False, "Source files for JVM scripts not found."
+            log("Завантаження JVM скриптів з GitHub репозиторію...")
+            repo_mgr = RepoManager(cache_dir, context, log_callback=log)
+            repo_info = config_manager.get_repo("zomboid-day-files")
+            if repo_info:
+                try:
+                    repo_path = repo_mgr.sync_repository(repo_info)
+                    cand = repo_path / "game-configuration-files"
+                    if cand.exists() and (cand / "ProjectZomboid64.bat").exists():
+                        source_dir = cand
+                except Exception as ex:
+                    log(f"Помилка завантаження репозиторію: {ex}")
+
+        if not source_dir or not source_dir.exists():
+            return False, "Не вдалося знайти або завантажити файли JVM скриптів з репозиторію."
 
         try:
             copied = []
@@ -257,17 +279,18 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                             pass
                     shutil.copy2(item, target)
                     copied.append(item.name)
-            log(f"Reinstalled JVM scripts: {', '.join(copied)}")
-            return True, f"Reinstalled: {', '.join(copied)}"
+            log(f"Встановлено JVM скрипти: {', '.join(copied)}")
+            return True, f"Успішно встановлено: {', '.join(copied)}"
         except Exception as e:
-            return False, f"Copy error: {e}"
+            return False, f"Помилка копіювання: {e}"
 
     # 2. ZombieBuddy & zbNative DLL
     elif step_id in ("zombie_buddy", "step_zombie_buddy"):
         candidates = [
-            Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\ZombieBuddy"),
-            base_dir / "cache" / "repos" / "zomboid-day-files" / "ZombieBuddy",
-            base_dir / "ZombieBuddy"
+            data_dir / "cache" / "repos" / "zomboid-day-files" / "ZombieBuddy",
+            get_app_dir() / "cache" / "repos" / "zomboid-day-files" / "ZombieBuddy",
+            get_app_dir() / "ZombieBuddy",
+            Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\ZombieBuddy")
         ]
         source_dir = None
         for c in candidates:
@@ -276,7 +299,20 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                 break
 
         if not source_dir:
-            return False, "Source files for ZombieBuddy not found."
+            log("Завантаження ZombieBuddy з GitHub репозиторію...")
+            repo_mgr = RepoManager(cache_dir, context, log_callback=log)
+            repo_info = config_manager.get_repo("zomboid-day-files")
+            if repo_info:
+                try:
+                    repo_path = repo_mgr.sync_repository(repo_info)
+                    cand = repo_path / "ZombieBuddy"
+                    if cand.exists() and (cand / "ZombieBuddy.jar").exists():
+                        source_dir = cand
+                except Exception as ex:
+                    log(f"Помилка завантаження репозиторію: {ex}")
+
+        if not source_dir or not source_dir.exists():
+            return False, "Не вдалося знайти або завантажити ZombieBuddy з репозиторію."
 
         try:
             copied = []
@@ -290,17 +326,18 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                             pass
                     shutil.copy2(item, target)
                     copied.append(item.name)
-            log(f"Reinstalled ZombieBuddy: {', '.join(copied)}")
-            return True, f"Reinstalled: {', '.join(copied)}"
+            log(f"Встановлено ZombieBuddy: {', '.join(copied)}")
+            return True, f"Успішно встановлено: {', '.join(copied)}"
         except Exception as e:
-            return False, f"Copy error: {e}"
+            return False, f"Помилка копіювання: {e}"
 
     # 3. PZ-ModGuard Security Scanner
     elif step_id in ("modguard", "step_modguard"):
         candidates = [
-            base_dir / "cache" / "repos" / "pz-modguard" / "PZ-ModGuard.bat",
-            Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\PZ-ModGuard.bat"),
-            base_dir / "PZ-ModGuard.bat"
+            data_dir / "cache" / "repos" / "pz-modguard" / "PZ-ModGuard.bat",
+            get_app_dir() / "cache" / "repos" / "pz-modguard" / "PZ-ModGuard.bat",
+            get_app_dir() / "PZ-ModGuard.bat",
+            Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\PZ-ModGuard.bat")
         ]
         source_bat = None
         for c in candidates:
@@ -309,28 +346,27 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                 break
 
         if not source_bat:
-            cache_dir = base_dir / "cache" / "repos"
-            context = {"GAME_DIR": str(game_dir), "USER_ZOMBOID_DIR": str(config_manager.user_zomboid_dir)}
-            repo_mgr = RepoManager(cache_dir, context)
+            log("Завантаження PZ-ModGuard з GitHub репозиторію...")
+            repo_mgr = RepoManager(cache_dir, context, log_callback=log)
             modguard_repo = config_manager.get_repo("pz-modguard")
             if modguard_repo:
                 try:
                     repo_path = repo_mgr.sync_repository(modguard_repo)
                     if (repo_path / "PZ-ModGuard.bat").exists():
                         source_bat = repo_path / "PZ-ModGuard.bat"
-                except Exception:
-                    pass
+                except Exception as ex:
+                    log(f"Помилка завантаження PZ-ModGuard: {ex}")
 
         if not source_bat or not source_bat.exists():
-            return False, "PZ-ModGuard.bat not found."
+            return False, "Не вдалося знайти або завантажити PZ-ModGuard.bat."
 
         try:
             target = game_dir / "PZ-ModGuard.bat"
             shutil.copy2(source_bat, target)
-            log(f"Reinstalled PZ-ModGuard.bat into {target}")
-            return True, "PZ-ModGuard.bat successfully reinstalled!"
+            log(f"Встановлено PZ-ModGuard.bat у {target}")
+            return True, "PZ-ModGuard.bat успішно оновлено!"
         except Exception as e:
-            return False, f"PZ-ModGuard copy error: {e}"
+            return False, f"Помилка копіювання PZ-ModGuard: {e}"
 
     # 4. Steam Workshop Collection
     elif step_id in ("steam_workshop", "step_steam_workshop"):

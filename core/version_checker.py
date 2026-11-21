@@ -61,7 +61,7 @@ class VersionChecker:
                 "color": "#ef4444",
                 "is_installed": False,
                 "missing_files": [
-                    t("chk_launcher_loc_fail", lang, app_dir=str(app_dir), game_dir=str(self.config.game_dir))
+                    t("chk_launcher_loc_fail", lang, app_dir=str(app_dir))
                 ]
             }
 

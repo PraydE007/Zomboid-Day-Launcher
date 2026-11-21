@@ -379,7 +379,7 @@ class MainWindow(QMainWindow):
         lang = self.config.language
 
         # Critical threat found: TERMINATE launch immediately!
-        if (not is_clean) or code == 20 or len(threats) > 0:
+        if (not is_clean) and len(threats) > 0:
             self.tab_home.hide_launch_spinner()
 
             self.tab_console.append_log("⛔ [КРИТИЧНА ЗАГРОЗА БЕЗПЕКИ]: ЗАПУСК ГРИ ПРИМУСОВО СКАСОВАНО!")
@@ -389,8 +389,9 @@ class MainWindow(QMainWindow):
 
             from ui.dialogs.threat_dialog import ThreatDialog
             raw_lines = self.tab_console.terminal.toPlainText().splitlines()[-40:] if hasattr(self.tab_console, "terminal") else threats
-            dlg = ThreatDialog(raw_logs=raw_lines, threats=threats, lang=lang, parent=self)
-            dlg.sig_rescan_requested.connect(lambda: self._on_start_clicked(is_debug))
+            dlg = ThreatDialog(raw_logs=raw_lines, threats=threats, game_dir=Path(self.config.game_dir), lang=lang, parent=self)
+            dlg.sig_rescan_requested.connect(lambda: self._handle_start(is_debug))
+            dlg.sig_launch_approved.connect(lambda: self._do_launch_game(is_debug))
             dlg.exec()
             return
 

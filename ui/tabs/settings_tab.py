@@ -56,18 +56,12 @@ class SettingsTab(QWidget):
 
         lp.addWidget(_SectionHeader("Шляхи", card_paths))
 
-        lp.addWidget(QLabel("Папка Project Zomboid:", card_paths))
+        lp.addWidget(QLabel("Папка гри Project Zomboid (визначається автоматично):", card_paths))
         row_gd = QHBoxLayout()
         self.edit_game_dir = QLineEdit(card_paths)
+        self.edit_game_dir.setReadOnly(True)
+        self.edit_game_dir.setToolTip("Лаунчер працює суворо відносно власного розміщення поруч із ProjectZomboid64.exe")
         row_gd.addWidget(self.edit_game_dir)
-        btn_br_g = QPushButton("Огляд", card_paths)
-        btn_br_g.setProperty("class", "SecondaryButton")
-        btn_br_g.clicked.connect(self._browse_game_dir)
-        row_gd.addWidget(btn_br_g)
-        btn_auto = QPushButton("Автопошук", card_paths)
-        btn_auto.setProperty("class", "SecondaryButton")
-        btn_auto.clicked.connect(self._auto_detect_game_dir)
-        row_gd.addWidget(btn_auto)
         lp.addLayout(row_gd)
 
         lp.addWidget(QLabel("Папка профілю Zomboid:", card_paths))
@@ -191,7 +185,7 @@ class SettingsTab(QWidget):
         self.sig_hero_image_changed.emit(d)
 
     def _save_settings(self):
-        self.config.set("game_dir", self.edit_game_dir.text().strip())
+        self.config.set("game_dir", str(get_app_dir()))
         self.config.set("user_zomboid_dir", self.edit_user_dir.text().strip())
         self.config.set("hero_image", self.edit_hero.text().strip())
         self.config.set("hide_to_tray_on_start", self.chk_tray_on_start.isChecked())

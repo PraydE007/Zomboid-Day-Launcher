@@ -45,8 +45,8 @@ def main():
     if font_path.exists():
         QFontDatabase.addApplicationFont(str(font_path))
 
-    # Initialize configuration
-    config = ConfigManager(base_dir=get_app_dir())
+    # Initialize configuration (loads zd-launcher if placed next to ProjectZomboid64.exe)
+    config = ConfigManager()
 
     # Launch Main Window
     window = MainWindow(config)

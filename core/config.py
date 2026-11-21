@@ -4,9 +4,10 @@ import json
 import winreg
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from core.utils import get_resource_path, get_app_dir
+from core.utils import get_resource_path, get_app_dir, is_in_game_dir, get_zd_data_dir
 
 CONFIG_FILE_NAME = "launcher_config.json"
+LAUNCHER_FOLDER_NAME = "zd-launcher"
 
 DEFAULT_REPOSITORIES = [
     {
@@ -48,57 +49,11 @@ DEFAULT_REPOSITORIES = [
 
 
 def detect_steam_pz_path() -> str:
-    """Auto-detect Project Zomboid installation directory via Steam registry, local folder, and common paths."""
-    # 0. Check if launcher is located right inside Project Zomboid directory
-    app_dir = get_app_dir()
-    if (app_dir / "ProjectZomboid64.exe").exists():
-        return str(app_dir)
-
-    candidates = []
-
-    # 1. Check Windows Registry for Steam install path
-    for hkey, subkey in [
-        (winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Valve\Steam"),
-    ]:
-        try:
-            with winreg.OpenKey(hkey, subkey) as key:
-                val, _ = winreg.QueryValueEx(key, "SteamPath")
-                if val:
-                    steam_path = Path(val.replace("/", "\\"))
-                    candidates.append(steam_path / "steamapps" / "common" / "ProjectZomboid")
-
-                    # Also check libraryfolders.vdf
-                    vdf_file = steam_path / "steamapps" / "libraryfolders.vdf"
-                    if vdf_file.exists():
-                        try:
-                            content = vdf_file.read_text(encoding="utf-8", errors="ignore")
-                            import re
-                            for m in re.finditer(r'"path"\s+"([^"]+)"', content):
-                                lib_path = Path(m.group(1).replace("\\\\", "\\"))
-                                candidates.append(lib_path / "steamapps" / "common" / "ProjectZomboid")
-                        except Exception:
-                            pass
-        except Exception:
-            pass
-
-    # 2. Common manual drive locations
-    for drive in ["C:", "D:", "E:", "F:", "G:"]:
-        candidates.append(Path(f"{drive}\\Program Files (x86)\\Steam\\steamapps\\common\\ProjectZomboid"))
-        candidates.append(Path(f"{drive}\\SteamLibrary\\steamapps\\common\\ProjectZomboid"))
-        candidates.append(Path(f"{drive}\\Games\\ProjectZomboid"))
-
-    for c in candidates:
-        if c.exists() and (c / "ProjectZomboid64.exe").exists():
-            return str(c)
-
-    # Fallback to standard Steam default
-    default_pz = Path(r"C:\Program Files (x86)\Steam\steamapps\common\ProjectZomboid")
-    if default_pz.exists():
-        return str(default_pz)
-
-    return ""
+    """
+    Game directory is strictly relative to launcher location.
+    The launcher does not search external Steam registries or paths.
+    """
+    return str(get_app_dir())
 
 
 def detect_user_zomboid_dir() -> str:
@@ -122,11 +77,12 @@ def load_external_repositories() -> Optional[List[Dict[str, Any]]]:
     r"""
     Load repositories definition dynamically:
     1. First checks local repo files: C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\repositories.json
-    2. Then checks cache/repos/zomboid-day-files/repositories.json
+    2. Then checks zd-launcher/cache/repos/zomboid-day-files/repositories.json or cache/repos/...
     3. Fallback to launcher dir repositories.json
     """
     candidates = [
         Path(r"C:\Users\user\Desktop\Zomboid-Day-Launcher-Files\repositories.json"),
+        get_app_dir() / LAUNCHER_FOLDER_NAME / "cache" / "repos" / "zomboid-day-files" / "repositories.json",
         get_app_dir() / "cache" / "repos" / "zomboid-day-files" / "repositories.json",
         get_app_dir() / "repositories.json"
     ]
@@ -144,13 +100,50 @@ def load_external_repositories() -> Optional[List[Dict[str, Any]]]:
 
 class ConfigManager:
     def __init__(self, base_dir: Optional[Path] = None):
-        if base_dir is None:
-            self.base_dir = get_app_dir()
-        else:
+        app_dir = get_app_dir()
+        # Strictly relative: check if launcher is located inside the game directory
+        self.is_valid_location = is_in_game_dir()
+
+        if base_dir is not None:
             self.base_dir = base_dir
+        elif self.is_valid_location:
+            # Launcher is inside game folder: use dedicated zd-launcher subfolder
+            self.base_dir = app_dir / LAUNCHER_FOLDER_NAME
+            self.base_dir.mkdir(parents=True, exist_ok=True)
+            self._migrate_legacy_data(app_dir, self.base_dir)
+        else:
+            # Outside game folder: NEVER create zd-launcher or write configs on disk
+            self.base_dir = app_dir
 
         self.config_path = self.base_dir / CONFIG_FILE_NAME
         self.data: Dict[str, Any] = self._load()
+
+    def _migrate_legacy_data(self, app_dir: Path, zd_dir: Path):
+        import shutil
+        # 1. launcher_config.json
+        old_cfg = app_dir / CONFIG_FILE_NAME
+        new_cfg = zd_dir / CONFIG_FILE_NAME
+        if old_cfg.exists() and not new_cfg.exists():
+            try:
+                shutil.move(str(old_cfg), str(new_cfg))
+            except Exception:
+                pass
+        # 2. cache
+        old_cache = app_dir / "cache"
+        new_cache = zd_dir / "cache"
+        if old_cache.exists() and not new_cache.exists():
+            try:
+                shutil.move(str(old_cache), str(new_cache))
+            except Exception:
+                pass
+        # 3. logs
+        old_logs = app_dir / "logs"
+        new_logs = zd_dir / "logs"
+        if old_logs.exists() and not new_logs.exists():
+            try:
+                shutil.move(str(old_logs), str(new_logs))
+            except Exception:
+                pass
 
     def _default_config(self) -> Dict[str, Any]:
         return {
@@ -173,7 +166,8 @@ class ConfigManager:
     def _load(self) -> Dict[str, Any]:
         defaults = self._default_config()
         if not self.config_path.exists():
-            self._save(defaults)
+            if self.is_valid_location:
+                self._save(defaults)
             return defaults
 
         try:
@@ -186,11 +180,16 @@ class ConfigManager:
             return loaded
         except Exception as e:
             print(f"[ConfigManager] Error reading {self.config_path}: {e}. Resetting to defaults.")
-            self._save(defaults)
+            if self.is_valid_location:
+                self._save(defaults)
             return defaults
 
     def _save(self, data: Dict[str, Any]):
+        if not self.is_valid_location:
+            # Do NOT create zd-launcher or write configs to disk if misplaced
+            return
         try:
+            self.base_dir.mkdir(parents=True, exist_ok=True)
             with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
@@ -208,11 +207,14 @@ class ConfigManager:
 
     @property
     def game_dir(self) -> str:
-        return self.data.get("game_dir", "")
+        # Launcher operates strictly relative to its location
+        return str(get_app_dir())
 
     @game_dir.setter
     def game_dir(self, val: str):
-        self.set("game_dir", val)
+        self.data["game_dir"] = str(get_app_dir())
+        if self.is_valid_location:
+            self.save()
 
     @property
     def user_zomboid_dir(self) -> str:

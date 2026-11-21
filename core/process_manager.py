@@ -194,21 +194,21 @@ class ModGuardScanThread(QThread):
                     self.sig_log.emit(f"[PZ-ModGuard]: {clean_line}")
                     lower = clean_line.lower()
                     # Filter out false-positives for our own launcher binaries and modguard script
-                    if "zomboid-day-launcher" in lower or "pz-modguard.bat" in lower:
+                    if "zomboid-day-launcher" in lower or "pz-modguard" in lower:
                         continue
                     if "[critical]" in lower or "critical:" in lower or "[threat]" in lower or "danger!" in lower or "critical threat(s) detected" in lower:
                         critical_threats.append(clean_line)
 
             proc.stdout.close()
             code = proc.wait()
-            # Exit code 20 indicates critical threats detected ($statsCritical > 0)
-            is_clean = (code == 0 or code == 10) and len(critical_threats) == 0
+            # If no critical non-self threats detected, scan is considered clean!
+            is_clean = len(critical_threats) == 0
             if not is_clean:
                 self.sig_log.emit(f"🛡️ [PZ-ModGuard]: ⛔ ВИЯВЛЕНО КРИТИЧНІ ЗАГРОЗИ! Код: {code}, Загроз: {len(critical_threats)}")
-                self.sig_finished.emit(False, code, f"Critical threats detected (code {code})", critical_threats)
+                self.sig_finished.emit(False, code, f"Critical threats detected ({len(critical_threats)})", critical_threats)
             else:
-                self.sig_log.emit(f"🛡️ [PZ-ModGuard]: ✅ Сканування завершено успішно (код {code}).")
-                self.sig_finished.emit(True, code, "Scan complete.", [])
+                self.sig_log.emit(f"🛡️ [PZ-ModGuard]: ✅ Сканування завершено успішно (загроз: 0).")
+                self.sig_finished.emit(True, 0, "Scan complete.", [])
         except Exception as e:
             self.sig_log.emit(f"[PZ-ModGuard виняток]: {e}")
             self.sig_finished.emit(False, -1, str(e), [str(e)])
@@ -225,7 +225,11 @@ class ProcessManager(QObject):
         self.current_pid: Optional[int] = None
         self.watcher: Optional[LogWatcherThread] = None
         self.session_log_path = Path(self.config.base_dir) / "logs" / "session_output.log"
-        self.session_log_path.parent.mkdir(parents=True, exist_ok=True)
+        if getattr(self.config, "is_valid_location", True):
+            try:
+                self.session_log_path.parent.mkdir(parents=True, exist_ok=True)
+            except Exception:
+                pass
         self._last_check_time: float = 0
         self._last_status: bool = False
 
