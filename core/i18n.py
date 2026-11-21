@@ -13,8 +13,22 @@ from core.utils import get_resource_path
 
 
 SUPPORTED_LANGUAGES: List[Tuple[str, str]] = [
+    ("zh", "中文 (Mandarin)"),
+    ("es", "Español"),
     ("en", "English"),
-    ("uk", "Українська")
+    ("ar", "العربية"),
+    ("pt", "Português"),
+    ("ja", "日本語"),
+    ("de", "Deutsch"),
+    ("ko", "한국어"),
+    ("fr", "Français"),
+    ("it", "Italiano"),
+    ("tr", "Türkçe"),
+    ("pl", "Polski"),
+    ("uk", "Українська"),
+    ("ro", "Română"),
+    ("hu", "Magyar"),
+    ("cs", "Čeština"),
 ]
 
 DEFAULT_LANGUAGE = "en"
