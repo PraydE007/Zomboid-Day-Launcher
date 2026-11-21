@@ -19,7 +19,7 @@ from PyQt6.QtGui import (
 
 from core.version_checker import VersionChecker
 from core.detector import SystemDetector
-from core.i18n import t
+from core.i18n import t, get_available_locales, set_locale
 from ui.dialogs.diagnostics_dialog import DiagnosticsDialog
 from ui.widgets.spinner import LoadingSpinner
 
@@ -456,8 +456,8 @@ class HomeTab(QWidget):
         self.combo_lang.setObjectName("LangSelector")
         self.combo_lang.setMinimumHeight(42)
         self.combo_lang.setMinimumWidth(115)
-        self.combo_lang.addItem("English", "en")
-        self.combo_lang.addItem("Українська", "uk")
+        for code, display_name in get_available_locales():
+            self.combo_lang.addItem(display_name, code)
 
         # Default is English ("en") if not already saved
         idx = self.combo_lang.findData(self.config.language)
@@ -493,6 +493,7 @@ class HomeTab(QWidget):
         new_lang = self.combo_lang.currentData()
         if new_lang and new_lang != self.config.language:
             self.config.language = new_lang
+            set_locale(new_lang)
             self.sig_language_changed.emit(new_lang)
             self.retranslate_ui()
 
@@ -564,7 +565,7 @@ class HomeTab(QWidget):
         ver = str(status.get("version", "")).strip().lstrip("v")
 
         # Format cleanly: "Up to date • v1.0.1" or "Update • v1.0.0 → v1.0.1"
-        if is_installed and ver and ver not in ["—", "Not installed", "Не встановлено", "Error", "Помилка"]:
+        if is_installed and ver and ver != "—":
             badge_text = f"{text} • v{ver}"
         else:
             badge_text = text
@@ -591,14 +592,13 @@ class HomeTab(QWidget):
             self.btn_debug_start.setEnabled(True)
             self.btn_debug_start.setToolTip("")
         else:
-            self.btn_start.setText("FIX")
+            self.btn_start.setText(t("btn_fix", lang))
             self.btn_start.setStyleSheet(STYLE_PLAY_FIX)
             self.btn_start.setProperty("status", "fix")
             if is_invalid_placement:
                 self.btn_start.setToolTip(t("banner_launcher_not_in_game", lang))
             elif is_update:
-                fix_tip = "Натисніть FIX для оновлення" if lang == "uk" else "Click FIX to update"
-                self.btn_start.setToolTip(f"{t('status_update_available', lang)} • {fix_tip}")
+                self.btn_start.setToolTip(f"{t('status_update_available', lang)} • {t('tip_click_fix_to_update', lang)}")
             else:
                 self.btn_start.setToolTip(t("btn_install", lang))
             self.btn_debug_start.setEnabled(False)

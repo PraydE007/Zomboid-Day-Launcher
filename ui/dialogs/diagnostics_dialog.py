@@ -97,7 +97,7 @@ class DiagnosticsDialog(QDialog):
         total = self.results.get("total_count", 0)
         score_color = "#22c55e" if passed == total else "#f59e0b"
 
-        passed_text = "Passed" if self.lang == "en" else "Виконано"
+        passed_text = t("diag_score_passed", self.lang)
         self.lbl_score = QLabel(f"{passed}/{total} {passed_text}", self)
         self.lbl_score.setStyleSheet(f"""
             background-color: rgba(30, 30, 30, 0.85);
@@ -257,7 +257,7 @@ class DiagnosticsDialog(QDialog):
         QMessageBox.information(
             self,
             t("info", self.lang),
-            "Всі компоненти та скрипти успішно перевстановлено!" if self.lang == "uk" else "All components and scripts successfully reinstalled!"
+            t("all_reinstalled_msg", self.lang)
         )
 
     def _open_game_folder(self):

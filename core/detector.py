@@ -63,9 +63,9 @@ class SystemDetector:
             "status": "ok" if game_exe_ok else "fail",
             "passed": game_exe_ok,
             "details": (
-                f"ProjectZomboid64.exe found ({game_dir})"
+                t("chk_game_exe_found", lang, path=str(game_dir))
                 if game_exe_ok else
-                f"ProjectZomboid64.exe missing at {game_dir}"
+                t("chk_game_exe_missing", lang, path=str(game_dir))
             )
         })
 
@@ -80,9 +80,9 @@ class SystemDetector:
             "status": "ok" if jvm_ok else "fail",
             "passed": jvm_ok,
             "details": (
-                "ProjectZomboid64.bat & ProjectZomboid64ShowConsole.bat active"
+                t("chk_jvm_scripts_ok", lang)
                 if jvm_ok else
-                "Optimized launch scripts missing (needs installation)"
+                t("chk_jvm_scripts_missing", lang)
             )
         })
 
@@ -96,9 +96,9 @@ class SystemDetector:
             "status": "ok" if zb_ok else "fail",
             "passed": zb_ok,
             "details": (
-                "ZombieBuddy.jar & zbNative.dll installed"
+                t("chk_zombie_buddy_ok", lang)
                 if zb_ok else
-                "ZombieBuddy files missing"
+                t("chk_zombie_buddy_missing", lang)
             )
         })
 
@@ -111,9 +111,9 @@ class SystemDetector:
             "status": "ok" if mg_ok else "warn",
             "passed": mg_ok,
             "details": (
-                "PZ-ModGuard.bat ready for bytecode mod security scanning"
+                t("chk_modguard_ok", lang)
                 if mg_ok else
-                "PZ-ModGuard not installed in game directory"
+                t("chk_modguard_missing", lang)
             )
         })
 
@@ -125,9 +125,9 @@ class SystemDetector:
             "status": "ok" if user_ok else "warn",
             "passed": user_ok,
             "details": (
-                f"Zomboid profile located at {user_dir}"
+                t("chk_user_profile_ok", lang, path=str(user_dir))
                 if user_ok else
-                f"Profile folder {user_dir} not created yet"
+                t("chk_user_profile_missing", lang, path=str(user_dir))
             )
         })
 
@@ -146,9 +146,9 @@ class SystemDetector:
             "status": "ok" if v_ok else "warn",
             "passed": v_ok,
             "details": (
-                (f"Синхронізовано з репозиторієм: v{repo_v}" if lang == "uk" else f"Synced with repository: v{repo_v}")
+                t("chk_version_synced", lang, version=repo_v)
                 if v_ok else
-                (f"Встановлена: v{inst_v or '—'} • На репозиторії: v{repo_v}" if lang == "uk" else f"Installed: v{inst_v or '—'} • Repository: v{repo_v}")
+                t("chk_version_mismatch", lang, installed=inst_v or "—", repo=repo_v)
             )
         })
 

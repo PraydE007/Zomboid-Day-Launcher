@@ -2,6 +2,7 @@
 Threat Dialog — Security Warning & Threat Quarantine Modal.
 Provides a fake terminal/console with selectable raw logs, 1-click
 deletion/quarantine of malicious files and scripts, and saving trusted exceptions (pzmg_exceptions.json).
+Fully localized using centralized i18n system.
 """
 
 import os
@@ -19,7 +20,6 @@ from PyQt6.QtWidgets import (
     QApplication
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QColor
 
 from core.i18n import t
 
@@ -49,7 +49,6 @@ def add_pzmg_exception(file_path: Path, game_dir: Optional[Path] = None) -> bool
         return False
 
     ext = file_path.suffix.lower()
-    # For native binaries (.ps1, .bat, .dll, .exe, etc.), PZ-ModGuard requires pattern="native"
     pattern = "native" if ext in (".dll", ".exe", ".ps1", ".bat", ".cmd", ".vbs", ".sh") else "*"
 
     entry = {
@@ -85,7 +84,6 @@ def add_pzmg_exception(file_path: Path, game_dir: Optional[Path] = None) -> bool
                 except Exception:
                     data = []
 
-            # Check if this exact hash is already stored
             if not any(item.get("sha256", "").lower() == f_hash for item in data if isinstance(item, dict)):
                 data.append(entry)
                 with open(target_json, "w", encoding="utf-8") as jf:
@@ -98,42 +96,36 @@ def add_pzmg_exception(file_path: Path, game_dir: Optional[Path] = None) -> bool
 
 
 class ThreatItemWidget(QFrame):
-    """Card displaying a single detected threat file with deletion and exception-allow actions."""
     sig_file_deleted = pyqtSignal(str)
     sig_exception_added = pyqtSignal(str)
 
-    def __init__(self, file_path: Path, raw_threat: str, game_dir: Optional[Path] = None, lang: str = "uk", parent=None):
+    def __init__(self, file_path: Path, raw_msg: str = "", game_dir: Optional[Path] = None, lang: str = "en", parent=None):
         super().__init__(parent)
         self.file_path = file_path
-        self.raw_threat = raw_threat
+        self.raw_msg = raw_msg
         self.game_dir = game_dir
         self.lang = lang
         self.is_resolved = False
+
         self._setup_ui()
 
     def _setup_ui(self):
         self.setStyleSheet("""
             QFrame {
-                background-color: rgba(30, 10, 10, 0.75);
+                background-color: rgba(25, 12, 12, 0.75);
                 border: 1px solid rgba(239, 68, 68, 0.35);
                 border-radius: 8px;
                 padding: 6px;
             }
-            QFrame:hover {
-                border-color: rgba(239, 68, 68, 0.7);
-                background-color: rgba(45, 12, 12, 0.85);
-            }
         """)
-
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(10)
 
-        # File Info Column
         info_col = QVBoxLayout()
         info_col.setSpacing(2)
 
-        file_name = self.file_path.name if self.file_path else ("Unknown file" if self.lang == "en" else "Невідомий файл")
+        file_name = self.file_path.name if self.file_path else t("threat_unknown_file", self.lang)
         self.lbl_name = QLabel(f"⚠️  {file_name}", self)
         self.lbl_name.setStyleSheet("color: #ef4444; font-size: 13px; font-weight: 800; background: transparent;")
         info_col.addWidget(self.lbl_name)
@@ -146,9 +138,9 @@ class ThreatItemWidget(QFrame):
 
         layout.addLayout(info_col, stretch=1)
 
-        # 1. Allow / Add Exception button
-        self.btn_allow = QPushButton("🛡️  У винятки" if self.lang == "uk" else "🛡️  Allow", self)
-        self.btn_allow.setToolTip("Додати цифровий відбиток файлу до довірених винятків PZ-ModGuard" if self.lang == "uk" else "Add SHA-256 to PZ-ModGuard exceptions")
+        # Allow / Add Exception button
+        self.btn_allow = QPushButton(t("threat_btn_allow", self.lang), self)
+        self.btn_allow.setToolTip(t("threat_tip_allow", self.lang))
         self.btn_allow.setStyleSheet("""
             QPushButton {
                 background: rgba(34, 197, 94, 0.15);
@@ -171,8 +163,8 @@ class ThreatItemWidget(QFrame):
         self.btn_allow.clicked.connect(self._handle_allow)
         layout.addWidget(self.btn_allow)
 
-        # 2. Delete button
-        self.btn_del = QPushButton("🗑  Видалити" if self.lang == "uk" else "🗑  Delete", self)
+        # Delete button
+        self.btn_del = QPushButton(t("threat_btn_delete", self.lang), self)
         self.btn_del.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ef4444, stop:1 #dc2626);
@@ -194,9 +186,9 @@ class ThreatItemWidget(QFrame):
         self.btn_del.clicked.connect(self._handle_delete)
         layout.addWidget(self.btn_del)
 
-        # 3. Open folder button
+        # Open folder button
         self.btn_open = QPushButton("📂", self)
-        self.btn_open.setToolTip("Відкрити папку з файлом" if self.lang == "uk" else "Open containing folder")
+        self.btn_open.setToolTip(t("threat_tip_open", self.lang))
         self.btn_open.setStyleSheet("""
             QPushButton {
                 background: rgba(255, 255, 255, 0.08);
@@ -216,7 +208,7 @@ class ThreatItemWidget(QFrame):
     def _handle_allow(self):
         if not self.file_path or not self.file_path.exists():
             self.btn_allow.setEnabled(False)
-            self.btn_allow.setText("✓ Відсутній" if self.lang == "uk" else "✓ Missing")
+            self.btn_allow.setText(t("threat_status_missing", self.lang))
             self.is_resolved = True
             self.sig_exception_added.emit(str(self.file_path))
             return
@@ -225,9 +217,9 @@ class ThreatItemWidget(QFrame):
         if ok:
             self.is_resolved = True
             self.btn_allow.setEnabled(False)
-            self.btn_allow.setText("✓ Дозволено" if self.lang == "uk" else "✓ Allowed")
+            self.btn_allow.setText(t("threat_status_allowed", self.lang))
             self.btn_del.setEnabled(False)
-            whitelisted_suffix = "(У винятках)" if self.lang == "uk" else "(Whitelisted)"
+            whitelisted_suffix = t("threat_status_whitelisted", self.lang)
             self.lbl_name.setText(f"🛡️  {self.file_path.name} {whitelisted_suffix}")
             self.lbl_name.setStyleSheet("color: #4ade80; font-size: 13px; font-weight: 800; background: transparent;")
             self.setStyleSheet("""
@@ -240,15 +232,13 @@ class ThreatItemWidget(QFrame):
             """)
             self.sig_exception_added.emit(str(self.file_path))
         else:
-            err_title = "Помилка" if self.lang == "uk" else "Error"
-            err_msg = "Не вдалося зберегти виняток." if self.lang == "uk" else "Failed to save exception."
-            QMessageBox.warning(self, err_title, err_msg)
+            QMessageBox.warning(self, t("error", self.lang), t("threat_err_save_exception", self.lang))
 
     def _handle_delete(self):
         if not self.file_path or not self.file_path.exists():
             self.is_resolved = True
             self.btn_del.setEnabled(False)
-            self.btn_del.setText("✓ Відсутній" if self.lang == "uk" else "✓ Missing")
+            self.btn_del.setText(t("threat_status_missing", self.lang))
             self.btn_allow.setEnabled(False)
             self.sig_file_deleted.emit(str(self.file_path))
             return
@@ -257,10 +247,10 @@ class ThreatItemWidget(QFrame):
             self.file_path.unlink()
             self.is_resolved = True
             self.btn_del.setEnabled(False)
-            self.btn_del.setText("✓ Видалено" if self.lang == "uk" else "✓ Deleted")
+            self.btn_del.setText(t("threat_status_resolved", self.lang))
             self.btn_del.setStyleSheet("background: #15803d; color: #ffffff; border-radius: 5px; padding: 6px 12px;")
             self.btn_allow.setEnabled(False)
-            deleted_suffix = "(Видалено)" if self.lang == "uk" else "(Deleted)"
+            deleted_suffix = t("threat_status_deleted", self.lang)
             self.lbl_name.setText(f"✓  {self.file_path.name} {deleted_suffix}")
             self.lbl_name.setStyleSheet("color: #10b981; font-size: 13px; font-weight: 800; background: transparent;")
             self.setStyleSheet("""
@@ -273,9 +263,7 @@ class ThreatItemWidget(QFrame):
             """)
             self.sig_file_deleted.emit(str(self.file_path))
         except Exception as e:
-            err_title = "Помилка" if self.lang == "uk" else "Error"
-            err_msg = f"Не вдалося видалити файл:\n{e}" if self.lang == "uk" else f"Could not delete file:\n{e}"
-            QMessageBox.warning(self, err_title, err_msg)
+            QMessageBox.warning(self, t("error", self.lang), t("threat_err_delete_file", self.lang, error=str(e)))
 
     def _handle_open_folder(self):
         if self.file_path:
@@ -288,14 +276,10 @@ class ThreatItemWidget(QFrame):
 
 
 class ThreatDialog(QDialog):
-    """
-    Dedicated Security Alert Dialog with a fake console, threat file management,
-    exception saving, and 'Зберегти і грати' instant launch capability.
-    """
     sig_rescan_requested = pyqtSignal()
     sig_launch_approved = pyqtSignal()
 
-    def __init__(self, raw_logs: List[str], threats: List[str], game_dir: Optional[Path] = None, lang: str = "uk", parent=None):
+    def __init__(self, raw_logs: List[str], threats: List[str], game_dir: Optional[Path] = None, lang: str = "en", parent=None):
         super().__init__(parent)
         self.raw_logs = raw_logs
         self.threats = threats
@@ -303,7 +287,7 @@ class ThreatDialog(QDialog):
         self.lang = lang
         self.threat_widgets: List[ThreatItemWidget] = []
 
-        self.setWindowTitle("PZ-ModGuard Security Alert")
+        self.setWindowTitle(t("threat_dlg_title", self.lang))
         self.setMinimumSize(800, 600)
         self.resize(840, 660)
         self._setup_ui()
@@ -318,7 +302,6 @@ class ThreatDialog(QDialog):
                 p_str = m.strip().rstrip('.,;)')
                 p = Path(p_str)
                 lower = p.name.lower()
-                # Exclude self binaries and launchers
                 if "zomboid-day-launcher" in lower or "pz-modguard" in lower:
                     continue
                 if str(p).lower() not in seen:
@@ -350,16 +333,11 @@ class ThreatDialog(QDialog):
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
 
-        self.lbl_title = QLabel("ВИЯВЛЕНО КРИТИЧНІ ЗАГРОЗИ БЕЗПЕКИ МОДІВ" if self.lang == "uk" else "CRITICAL MOD SECURITY THREAT DETECTED", self)
+        self.lbl_title = QLabel(t("threat_header_critical", self.lang), self)
         self.lbl_title.setStyleSheet("color: #ef4444; font-size: 17px; font-weight: 900; letter-spacing: 0.5px; background: transparent;")
         title_col.addWidget(self.lbl_title)
 
-        self.lbl_desc = QLabel(
-            "PZ-ModGuard виявив неавторизовані нативні бінарні файли або скрипти. Оберіть дію для кожного файлу нижче."
-            if self.lang == "uk" else
-            "PZ-ModGuard detected unauthorized native binaries or scripts. Choose an action for each file below.",
-            self
-        )
+        self.lbl_desc = QLabel(t("threat_header_desc", self.lang), self)
         self.lbl_desc.setStyleSheet("color: #a1a1aa; font-size: 12px; background: transparent;")
         title_col.addWidget(self.lbl_desc)
 
@@ -371,13 +349,13 @@ class ThreatDialog(QDialog):
         console_box.setSpacing(6)
 
         c_header = QHBoxLayout()
-        lbl_console_title = QLabel("📟  ТЕРМІНАЛ СКАНЕРА (PZ-MODGUARD REPORT):" if self.lang == "uk" else "📟  SCANNER TERMINAL REPORT:", self)
+        lbl_console_title = QLabel(t("threat_console_title", self.lang), self)
         lbl_console_title.setStyleSheet("color: #d4d4d8; font-size: 11px; font-weight: 700; background: transparent;")
         c_header.addWidget(lbl_console_title)
 
         c_header.addStretch()
 
-        btn_copy = QPushButton("📋  Скопіювати звіт" if self.lang == "uk" else "📋  Copy Log", self)
+        btn_copy = QPushButton(t("threat_btn_copy", self.lang), self)
         btn_copy.setStyleSheet("""
             QPushButton {
                 background: rgba(255, 255, 255, 0.06);
@@ -422,10 +400,7 @@ class ThreatDialog(QDialog):
         # 3. Detected Threat Files
         threat_paths = self._extract_threat_paths()
 
-        self.lbl_files_header = QLabel(
-            f"🎯  ВИЯВЛЕНІ ФАЙЛИ ({len(threat_paths)}):" if self.lang == "uk" else f"🎯  DETECTED FILES ({len(threat_paths)}):",
-            self
-        )
+        self.lbl_files_header = QLabel(t("threat_files_count", self.lang, count=len(threat_paths)), self)
         self.lbl_files_header.setStyleSheet("color: #ef4444; font-size: 12px; font-weight: 800; background: transparent;")
         layout.addWidget(self.lbl_files_header)
 
@@ -455,12 +430,7 @@ class ThreatDialog(QDialog):
                 self.threat_widgets.append(item)
                 scroll_layout.addWidget(item)
         else:
-            self.lbl_none = QLabel(
-                "Критичних загроз у сторонніх файлах не виявлено або всі загрози вже усунено."
-                if self.lang == "uk" else
-                "No external critical threats detected or all threats have been resolved.",
-                scroll_content
-            )
+            self.lbl_none = QLabel(t("threat_none_left", self.lang), scroll_content)
             self.lbl_none.setStyleSheet("color: #4ade80; font-size: 12px; font-weight: 600; padding: 12px;")
             scroll_layout.addWidget(self.lbl_none)
 
@@ -472,8 +442,7 @@ class ThreatDialog(QDialog):
         btn_row = QHBoxLayout()
         btn_row.setSpacing(10)
 
-        # Bulk Delete button
-        self.btn_del_all = QPushButton("🗑  Видалити всі" if self.lang == "uk" else "🗑  Delete All", self)
+        self.btn_del_all = QPushButton(t("threat_btn_delete_all", self.lang), self)
         self.btn_del_all.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ef4444, stop:1 #dc2626);
@@ -495,8 +464,7 @@ class ThreatDialog(QDialog):
         self.btn_del_all.clicked.connect(self._delete_all_threats)
         btn_row.addWidget(self.btn_del_all)
 
-        # Bulk Allow Exceptions button
-        self.btn_allow_all = QPushButton("🛡️  Дозволити всі" if self.lang == "uk" else "🛡️  Allow All", self)
+        self.btn_allow_all = QPushButton(t("threat_btn_allow_all", self.lang), self)
         self.btn_allow_all.setStyleSheet("""
             QPushButton {
                 background: rgba(34, 197, 94, 0.15);
@@ -519,8 +487,7 @@ class ThreatDialog(QDialog):
         self.btn_allow_all.clicked.connect(self._allow_all_threats)
         btn_row.addWidget(self.btn_allow_all)
 
-        # Rescan button
-        self.btn_rescan = QPushButton("⟳  Перевірити знову" if self.lang == "uk" else "⟳  Rescan Now", self)
+        self.btn_rescan = QPushButton(t("threat_btn_rescan", self.lang), self)
         self.btn_rescan.setStyleSheet("""
             QPushButton {
                 background: rgba(255, 255, 255, 0.08);
@@ -540,8 +507,7 @@ class ThreatDialog(QDialog):
 
         btn_row.addStretch()
 
-        # Primary dynamic button: "✕ Скасувати" when unresolved, "💾 Зберегти і грати" when resolved
-        self.btn_play_or_close = QPushButton("✕  Скасувати" if self.lang == "uk" else "✕  Cancel", self)
+        self.btn_play_or_close = QPushButton(t("threat_btn_cancel", self.lang), self)
         self.btn_play_or_close.setStyleSheet("""
             QPushButton {
                 background: rgba(255, 255, 255, 0.08);
@@ -566,41 +532,30 @@ class ThreatDialog(QDialog):
         cb = QApplication.clipboard()
         if cb:
             cb.setText(self.txt_console.toPlainText())
-            title = "Скопійовано" if self.lang == "uk" else "Copied"
-            msg = "Повний звіт скопійовано в буфер обміну!" if self.lang == "uk" else "Full report copied to clipboard!"
-            QMessageBox.information(self, title, msg)
+            QMessageBox.information(self, t("copied", self.lang), t("threat_copy_success", self.lang))
 
     def _on_item_deleted(self, file_path_str: str):
-        log_line = f"\n[УСПІШНО]: Файл видалено з системи: {file_path_str}" if self.lang == "uk" else f"\n[SUCCESS]: File removed from system: {file_path_str}"
-        self.txt_console.appendPlainText(log_line)
+        self.txt_console.appendPlainText(t("threat_log_deleted", self.lang, path=file_path_str))
         self._check_resolution_state()
 
     def _on_item_allowed(self, file_path_str: str):
-        log_line = f"\n[ВИЙНЯТОК ЗБЕРЕЖЕНО]: Файл внесено до довірених винятків PZ-ModGuard: {file_path_str}" if self.lang == "uk" else f"\n[EXCEPTION SAVED]: File added to trusted PZ-ModGuard exceptions: {file_path_str}"
-        self.txt_console.appendPlainText(log_line)
+        self.txt_console.appendPlainText(t("threat_log_allowed", self.lang, path=file_path_str))
         self._check_resolution_state()
 
     def _check_resolution_state(self):
-        """Check if all detected threats are resolved (deleted or whitelisted). If so, offer 'Save and Play'."""
         unresolved = [w for w in self.threat_widgets if not w.is_resolved and w.file_path.exists()]
 
         if len(unresolved) == 0:
-            # All threats resolved!
             self.lbl_icon.setText("🛡️✅")
-            self.lbl_title.setText("УСІ ЗАГРОЗИ УСУНЕНО АБО ДОДАНО ДО ВИНЯТКІВ" if self.lang == "uk" else "ALL THREATS RESOLVED OR WHITELISTED")
+            self.lbl_title.setText(t("threat_resolved_title", self.lang))
             self.lbl_title.setStyleSheet("color: #22c55e; font-size: 17px; font-weight: 900; background: transparent;")
-            self.lbl_desc.setText(
-                "Файли успішно видалено або підтверджено у винятках. Тепер можна безпечно запустити гру!"
-                if self.lang == "uk" else
-                "Files removed or whitelisted. You can now safely launch the game!"
-            )
+            self.lbl_desc.setText(t("threat_resolved_desc", self.lang))
             self.lbl_desc.setStyleSheet("color: #86efac; font-size: 12px; background: transparent;")
 
             self.btn_del_all.setEnabled(False)
             self.btn_allow_all.setEnabled(False)
 
-            # Transform close button into vibrant green "Save and Play" button
-            self.btn_play_or_close.setText("💾  Зберегти і грати" if self.lang == "uk" else "💾  Save & Play")
+            self.btn_play_or_close.setText(t("threat_btn_save_and_play", self.lang))
             self.btn_play_or_close.setStyleSheet("""
                 QPushButton {
                     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #22c55e, stop:1 #16a34a);
@@ -634,13 +589,11 @@ class ThreatDialog(QDialog):
 
         self._check_resolution_state()
         if deleted_count > 0:
-            title = "Успіх" if self.lang == "uk" else "Success"
-            msg = (
-                f"Успішно видалено {deleted_count} небезпечних файлів!\nТепер можна запустити гру за кнопкою 'Зберегти і грати'."
-                if self.lang == "uk" else
-                f"Successfully deleted {deleted_count} dangerous files!\nYou can now start the game using the 'Save & Play' button."
+            QMessageBox.information(
+                self,
+                t("success", self.lang),
+                t("threat_del_success", self.lang, count=deleted_count)
             )
-            QMessageBox.information(self, title, msg)
 
     def _allow_all_threats(self):
         allowed_count = 0
@@ -651,13 +604,11 @@ class ThreatDialog(QDialog):
 
         self._check_resolution_state()
         if allowed_count > 0:
-            title = "Успіх" if self.lang == "uk" else "Success"
-            msg = (
-                f"Успішно додано {allowed_count} файлів до винятків PZ-ModGuard!\nТепер можна запустити гру за кнопкою 'Зберегти і грати'."
-                if self.lang == "uk" else
-                f"Successfully added {allowed_count} files to PZ-ModGuard exceptions!\nYou can now start the game using the 'Save & Play' button."
+            QMessageBox.information(
+                self,
+                t("success", self.lang),
+                t("threat_allow_success", self.lang, count=allowed_count)
             )
-            QMessageBox.information(self, title, msg)
 
     def _handle_rescan(self):
         self.accept()

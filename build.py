@@ -14,6 +14,7 @@ RELEASE_DIR = BASE_DIR / "release"
 BUILD_DIR = BASE_DIR / "build"
 ASSETS_DIR = BASE_DIR / "assets"
 FONT_DIR = BASE_DIR / "font"
+LOCALES_DIR = BASE_DIR / "locales"
 ICON_PATH = ASSETS_DIR / "icon.ico"
 
 
@@ -47,6 +48,7 @@ def build():
         f"--icon={str(ICON_PATH)}",
         f"--add-data={str(ASSETS_DIR)};assets",
         f"--add-data={str(FONT_DIR)};font",
+        f"--add-data={str(LOCALES_DIR)};locales",
         "--hidden-import=PyQt6",
         "--hidden-import=PyQt6.QtCore",
         "--hidden-import=PyQt6.QtGui",

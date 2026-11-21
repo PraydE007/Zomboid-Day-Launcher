@@ -334,7 +334,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 t("info", lang),
-                "Project Zomboid is already running!" if lang == "en" else "Project Zomboid вже запущено!"
+                t("game_already_running", lang)
             )
             return
 
@@ -388,10 +388,8 @@ class MainWindow(QMainWindow):
         if (not is_clean) and len(threats) > 0:
             self.tab_home.hide_launch_spinner()
 
-            abort_msg = "⛔ [КРИТИЧНА ЗАГРОЗА БЕЗПЕКИ]: ЗАПУСК ГРИ ПРИМУСОВО СКАСОВАНО!" if lang == "uk" else "⛔ [CRITICAL SECURITY THREAT]: GAME LAUNCH FORCEFULLY ABORTED!"
-            code_msg = f"   Код результату: {code}" if lang == "uk" else f"   Result code: {code}"
-            self.tab_console.append_log(abort_msg)
-            self.tab_console.append_log(code_msg)
+            self.tab_console.append_log(t("threat_abort_msg", lang))
+            self.tab_console.append_log(t("threat_code_msg", lang, code=code))
             for t_item in threats:
                 self.tab_console.append_log(f"   -> {t_item}")
 
@@ -432,7 +430,7 @@ class MainWindow(QMainWindow):
             self.tab_home.refresh_status()
             if self.config.hide_to_tray_on_start:
                 self.hide()
-                mode = "Debug" if is_debug else ("Standard" if lang == "en" else "Стандартний")
+                mode = t("mode_debug", lang) if is_debug else t("mode_standard", lang)
                 self.tray_icon.showMessage(
                     t("tray_game_started_title", lang),
                     t("tray_game_started_msg", lang, mode=mode),
@@ -442,7 +440,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(
                 self,
                 t("error", lang),
-                "Failed to start game." if lang == "en" else "Не вдалося запустити гру."
+                t("game_failed_to_start", lang)
             )
 
     def _on_game_crashed(self, error_msg: str):
@@ -463,16 +461,8 @@ class MainWindow(QMainWindow):
         # 4. Show modal alert with details
         QMessageBox.critical(
             self,
-            "Помилка запуску гри" if lang == "uk" else "Game Launch Error",
-            (
-                f"Project Zomboid не зміг запуститися або впав під час старту!\n\n"
-                f"Помилка:\n{error_msg}\n\n"
-                f"Повний звіт виведено у вкладці 'Консоль'."
-            ) if lang == "uk" else (
-                f"Project Zomboid failed to launch or crashed on startup!\n\n"
-                f"Error:\n{error_msg}\n\n"
-                f"See full report in the 'Console' tab."
-            )
+            t("game_launch_err_title", lang),
+            t("game_launch_err_msg", lang, error_msg=error_msg)
         )
 
     def _handle_settings_saved(self):

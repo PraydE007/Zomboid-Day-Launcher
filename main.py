@@ -48,6 +48,10 @@ def main():
     # Initialize configuration (loads zd-launcher if placed next to ProjectZomboid64.exe)
     config = ConfigManager()
 
+    # Synchronize i18n engine with saved user preference
+    from core.i18n import set_locale
+    set_locale(config.language)
+
     # Launch Main Window
     window = MainWindow(config)
     window.show()
