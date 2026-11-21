@@ -184,6 +184,8 @@ class MainWindow(QMainWindow):
         self.tab_home.sig_language_changed.connect(self._handle_language_changed)
         self.tab_settings.sig_settings_saved.connect(self._handle_settings_saved)
         self.tab_settings.sig_hero_image_changed.connect(self.tab_home.hero.set_image)
+        self.proc_mgr.sig_game_crashed.connect(self._on_game_crashed)
+        self.proc_mgr.sig_process_stopped.connect(lambda pid: self.tab_home.refresh_status())
 
     def _on_tab_changed(self, tab_id: int):
         self.hotbar.set_current_tab(tab_id)
@@ -436,6 +438,36 @@ class MainWindow(QMainWindow):
                 t("error", lang),
                 "Failed to start game." if lang == "en" else "Не вдалося запустити гру."
             )
+
+    def _on_game_crashed(self, error_msg: str):
+        lang = self.config.language
+        # 1. Immediately restore window from system tray so user sees the problem
+        if self.isHidden() or self.isMinimized():
+            self.showNormal()
+            self.raise_()
+            self.activateWindow()
+
+        # 2. Reset Home tab status so the button is not 'Running'
+        self.tab_home.hide_launch_spinner()
+        self.tab_home.refresh_status()
+
+        # 3. Switch to Console tab to show log details
+        self._on_tab_changed(2)
+
+        # 4. Show modal alert with details
+        QMessageBox.critical(
+            self,
+            "Помилка запуску гри" if lang == "uk" else "Game Launch Error",
+            (
+                f"Project Zomboid не зміг запуститися або впав під час старту!\n\n"
+                f"Помилка:\n{error_msg}\n\n"
+                f"Повний звіт виведено у вкладці 'Консоль'."
+            ) if lang == "uk" else (
+                f"Project Zomboid failed to launch or crashed on startup!\n\n"
+                f"Error:\n{error_msg}\n\n"
+                f"See full report in the 'Console' tab."
+            )
+        )
 
     def _handle_settings_saved(self):
         self.tab_home.refresh_status()

@@ -26,7 +26,53 @@ class PROCESSENTRY32(ctypes.Structure):
     ]
 
 
-def _fast_find_process(target_names: Set[str]) -> Optional[int]:
+def _get_process_image_path(pid: int) -> Optional[str]:
+    """Retrieve full executable path of a process via Win32 API."""
+    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+    h = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+    if not h:
+        return None
+    buf = ctypes.create_unicode_buffer(1024)
+    size = ctypes.wintypes.DWORD(1024)
+    ok = ctypes.windll.kernel32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size))
+    ctypes.windll.kernel32.CloseHandle(h)
+    if ok:
+        return buf.value
+    return None
+
+
+def _is_pid_alive(pid: int) -> bool:
+    """Check if a specific PID is still alive via OpenProcess (~0.005ms)."""
+    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+    STILL_ACTIVE = 259
+    h = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+    if not h:
+        return False
+    exit_code = ctypes.wintypes.DWORD()
+    success = ctypes.windll.kernel32.GetExitCodeProcess(h, ctypes.byref(exit_code))
+    ctypes.windll.kernel32.CloseHandle(h)
+    return bool(success and exit_code.value == STILL_ACTIVE)
+
+
+def _is_actual_game_pid(pid: int, game_dir_str: str) -> bool:
+    """Strict check: PID must be a real game executable (ProjectZomboid or Java), NEVER cmd.exe."""
+    if not _is_pid_alive(pid):
+        return False
+    img = _get_process_image_path(pid)
+    if not img:
+        return False
+    img_low = img.lower()
+    if img_low.endswith("cmd.exe") or img_low.endswith("conhost.exe"):
+        return False
+    if "projectzomboid64.exe" in img_low or "projectzomboid32.exe" in img_low:
+        return True
+    if img_low.endswith("java.exe") or img_low.endswith("javaw.exe"):
+        if (game_dir_str and game_dir_str.lower() in img_low) or "projectzomboid" in img_low:
+            return True
+    return False
+
+
+def _fast_find_process(target_names: Set[str], game_dir: Optional[str] = None) -> Optional[int]:
     """Scan running processes via Windows Toolhelp32 snapshot (~10ms vs 1100ms psutil)."""
     h = ctypes.windll.kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
     if h == -1 or h == 0xFFFFFFFF:
@@ -42,24 +88,18 @@ def _fast_find_process(target_names: Set[str]) -> Optional[int]:
             if exe in target_names:
                 found_pid = entry.th32ProcessID
                 break
+            elif exe in ("java.exe", "javaw.exe"):
+                img = _get_process_image_path(entry.th32ProcessID)
+                if img:
+                    img_low = img.lower()
+                    if (game_dir and game_dir.lower() in img_low) or "projectzomboid" in img_low:
+                        found_pid = entry.th32ProcessID
+                        break
             if not ctypes.windll.kernel32.Process32Next(h, ctypes.byref(entry)):
                 break
 
     ctypes.windll.kernel32.CloseHandle(h)
     return found_pid
-
-
-def _is_pid_alive(pid: int) -> bool:
-    """Check if a specific PID is still alive via OpenProcess (~0.005ms)."""
-    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-    STILL_ACTIVE = 259
-    h = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
-    if not h:
-        return False
-    exit_code = ctypes.wintypes.DWORD()
-    success = ctypes.windll.kernel32.GetExitCodeProcess(h, ctypes.byref(exit_code))
-    ctypes.windll.kernel32.CloseHandle(h)
-    return bool(success and exit_code.value == STILL_ACTIVE)
 
 
 class LogWatcherThread(QThread):
@@ -214,15 +254,84 @@ class ModGuardScanThread(QThread):
             self.sig_finished.emit(False, -1, str(e), [str(e)])
 
 
+class LaunchCrashWatcher(QThread):
+    sig_launch_failed = pyqtSignal(str)
+    sig_launch_succeeded = pyqtSignal(int)
+
+    def __init__(self, process_manager, parent=None):
+        super().__init__(parent)
+        self.mgr = process_manager
+        self._running = True
+
+    def stop(self):
+        self._running = False
+
+    def run(self):
+        start_time = time.time()
+        fatal_patterns = [
+            "could not find agent library",
+            "error occurred during initialization of vm",
+            "can't find dependent libraries",
+            "fatal error in native method",
+            "a fatal error has been detected",
+            "exception in thread \"main\"",
+            "failed to load",
+            "noclassdeffounderror",
+            "cannot find"
+        ]
+
+        found_game = False
+        while self._running and (time.time() - start_time < 6.5):
+            time.sleep(0.3)
+
+            # 1. Scan session log for fatal errors
+            if self.mgr.session_log_path.exists():
+                try:
+                    with open(self.mgr.session_log_path, "r", encoding="utf-8", errors="ignore") as f:
+                        lines = f.readlines()
+                    for i, line in enumerate(lines[-25:]):
+                        l_low = line.lower()
+                        for pat in fatal_patterns:
+                            if pat in l_low:
+                                err_line = line.strip()
+                                # Include adjacent error line for full context if available
+                                if i + 1 < len(lines[-25:]):
+                                    next_line = lines[-25:][i + 1].strip()
+                                    if any(p in next_line.lower() for p in fatal_patterns) or "error" in next_line.lower() or "exception" in next_line.lower():
+                                        err_line = f"{err_line}\n{next_line}"
+                                self.sig_launch_failed.emit(err_line)
+                                return
+                except Exception:
+                    pass
+
+            # 2. Check if real game PID has started
+            if self.mgr.is_game_running():
+                found_game = True
+                self.sig_launch_succeeded.emit(self.mgr.current_pid or 0)
+
+            # 3. If batch wrapper exited and game is not running -> premature exit
+            if self.mgr.batch_proc and self.mgr.batch_proc.poll() is not None:
+                if not self.mgr.is_game_running():
+                    self.sig_launch_failed.emit("Процес гри завершився передчасно без старту.")
+                    return
+
+        # End of monitoring window: final check
+        if not found_game and not self.mgr.is_game_running():
+            self.sig_launch_failed.emit("Процес гри не виявлено (можливий збій запуску).")
+
+
 class ProcessManager(QObject):
     sig_log = pyqtSignal(str)
     sig_process_started = pyqtSignal(int, str)
     sig_process_stopped = pyqtSignal(int)
+    sig_game_crashed = pyqtSignal(str)
 
     def __init__(self, config_manager, parent=None):
         super().__init__(parent)
         self.config = config_manager
         self.current_pid: Optional[int] = None
+        self.batch_proc: Optional[subprocess.Popen] = None
+        self.launch_watcher: Optional[LaunchCrashWatcher] = None
         self.watcher: Optional[LogWatcherThread] = None
         self.session_log_path = Path(self.config.base_dir) / "logs" / "session_output.log"
         if getattr(self.config, "is_valid_location", True):
@@ -236,28 +345,29 @@ class ProcessManager(QObject):
     def is_game_running(self) -> bool:
         """
         Instantaneous non-blocking check if Project Zomboid is running.
-        1. Checks tracked PID directly (<0.01ms).
-        2. Fallback to native Win32 Toolhelp snapshot (~10ms) cached for 2 seconds.
+        1. Checks tracked game PID directly (<0.01ms), strictly excluding cmd.exe.
+        2. Fallback to native Win32 Toolhelp snapshot (~10ms) cached for 1.5 seconds.
         """
         now = time.time()
+        game_dir_str = self.config.game_dir
 
-        # 1. If we have a tracked PID, check it instantaneously
+        # 1. If we have a tracked game PID, check it instantaneously
         if self.current_pid:
-            if _is_pid_alive(self.current_pid):
+            if _is_actual_game_pid(self.current_pid, game_dir_str):
                 self._last_status = True
                 return True
             else:
                 self.current_pid = None
 
-        # Cache check for 2 seconds to avoid unnecessary scanning
-        if now - self._last_check_time < 2.0:
+        # Cache check for 1.5 seconds to avoid unnecessary scanning
+        if now - self._last_check_time < 1.5:
             return self._last_status
 
         self._last_check_time = now
 
         # 2. Fast Win32 snapshot check
         target_names = {"projectzomboid64.exe", "projectzomboid32.exe"}
-        pid = _fast_find_process(target_names)
+        pid = _fast_find_process(target_names, game_dir=game_dir_str)
         if pid:
             self.current_pid = pid
             self._last_status = True
@@ -315,6 +425,10 @@ class ProcessManager(QObject):
         except Exception:
             pass
 
+        # Setup environment with jre64\bin, win64, and game root on PATH
+        env = os.environ.copy()
+        env["PATH"] = f"{str(game_dir)};{str(game_dir / 'jre64' / 'bin')};{str(game_dir / 'win64')};" + env.get("PATH", "")
+
         show_ext_cmd = self.config.show_external_cmd or is_debug
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
         if show_ext_cmd:
@@ -322,22 +436,23 @@ class ProcessManager(QObject):
         else:
             creationflags |= subprocess.CREATE_NO_WINDOW
 
-        wrapper_cmd = f'cmd.exe /c "call "{bat_path}" >> "{self.session_log_path}" 2>&1"'
+        # Add '< nul' to ensure batch files never hang on PAUSE
+        wrapper_cmd = f'cmd.exe /c "call "{bat_path}" < nul >> "{self.session_log_path}" 2>&1"'
 
         self.sig_log.emit(f"Запуск гри: {bat_path.name} ({mode_name})")
         self.sig_log.emit(f"Папка виконання: {game_dir}")
 
         try:
-            proc = subprocess.Popen(
+            self.batch_proc = subprocess.Popen(
                 wrapper_cmd,
                 cwd=str(game_dir),
+                env=env,
                 shell=False,
                 creationflags=creationflags
             )
-            self.current_pid = proc.pid
+            self.current_pid = None
             self._last_status = True
-            self.sig_log.emit(f"Процес успішно запущено (PID: {proc.pid})")
-            self.sig_process_started.emit(proc.pid, bat_name)
+            self.sig_log.emit(f"Процес запущено (батнік PID: {self.batch_proc.pid})")
 
             if self.watcher:
                 self.watcher.stop()
@@ -346,6 +461,16 @@ class ProcessManager(QObject):
             self.watcher = LogWatcherThread(self.session_log_path)
             self.watcher.sig_new_line.connect(lambda line: self.sig_log.emit(line))
             self.watcher.start()
+
+            # Start launch crash watcher
+            if self.launch_watcher:
+                self.launch_watcher.stop()
+                self.launch_watcher.wait()
+
+            self.launch_watcher = LaunchCrashWatcher(self)
+            self.launch_watcher.sig_launch_failed.connect(self._on_launch_failed)
+            self.launch_watcher.sig_launch_succeeded.connect(self._on_launch_succeeded)
+            self.launch_watcher.start()
 
             user_console = Path(self.config.user_zomboid_dir) / "console.txt"
             if user_console.exists():
@@ -356,6 +481,23 @@ class ProcessManager(QObject):
         except Exception as e:
             self.sig_log.emit(f"[Помилка запуску гри]: {e}")
             return False
+
+    def _on_launch_failed(self, error_line: str):
+        self._last_status = False
+        self.current_pid = None
+        if self.batch_proc:
+            try:
+                self.batch_proc.kill()
+            except Exception:
+                pass
+            self.batch_proc = None
+        self.sig_log.emit(f"⛔ [НЕВДАЛИЙ ЗАПУСК ГРИ]: {error_line}")
+        self.sig_process_stopped.emit(-1)
+        self.sig_game_crashed.emit(error_line)
+
+    def _on_launch_succeeded(self, pid: int):
+        self.sig_log.emit(f"✅ [ГРУ УСПІШНО ЗАПУЩЕНО]: PID {pid}")
+        self.sig_process_started.emit(pid, "Project Zomboid")
 
     def execute_custom_cmd(self, cmd_text: str):
         game_dir = Path(self.config.game_dir)
