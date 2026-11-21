@@ -166,3 +166,5 @@ class HotbarDock(QWidget):
         for idx, (btn, label_key, full_key) in enumerate(self.slots):
             btn.setText(t(label_key, lang))
             btn.setToolTip(f"{t(full_key, lang)} [Ctrl+{idx+1}]")
+        self.btn_steam.setToolTip(t("hotbar_steam_tooltip", lang))
+        self.btn_diag_shield.setToolTip(t("hotbar_diag_tooltip", lang))

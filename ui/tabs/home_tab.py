@@ -597,7 +597,8 @@ class HomeTab(QWidget):
             if is_invalid_placement:
                 self.btn_start.setToolTip(t("banner_launcher_not_in_game", lang))
             elif is_update:
-                self.btn_start.setToolTip(f"{t('status_update_available', lang)} • Натисніть FIX для оновлення")
+                fix_tip = "Натисніть FIX для оновлення" if lang == "uk" else "Click FIX to update"
+                self.btn_start.setToolTip(f"{t('status_update_available', lang)} • {fix_tip}")
             else:
                 self.btn_start.setToolTip(t("btn_install", lang))
             self.btn_debug_start.setEnabled(False)

@@ -229,6 +229,10 @@ class MainWindow(QMainWindow):
         lang = self.config.language
         self.hotbar.retranslate_ui(lang)
         self.tab_home.retranslate_ui()
+        if hasattr(self, "tab_settings") and hasattr(self.tab_settings, "retranslate_ui"):
+            self.tab_settings.retranslate_ui()
+        if hasattr(self, "tab_console") and hasattr(self.tab_console, "retranslate_ui"):
+            self.tab_console.retranslate_ui()
         self._setup_system_tray()
 
     def _setup_system_tray(self):
@@ -384,8 +388,10 @@ class MainWindow(QMainWindow):
         if (not is_clean) and len(threats) > 0:
             self.tab_home.hide_launch_spinner()
 
-            self.tab_console.append_log("⛔ [КРИТИЧНА ЗАГРОЗА БЕЗПЕКИ]: ЗАПУСК ГРИ ПРИМУСОВО СКАСОВАНО!")
-            self.tab_console.append_log(f"   Код результату: {code}")
+            abort_msg = "⛔ [КРИТИЧНА ЗАГРОЗА БЕЗПЕКИ]: ЗАПУСК ГРИ ПРИМУСОВО СКАСОВАНО!" if lang == "uk" else "⛔ [CRITICAL SECURITY THREAT]: GAME LAUNCH FORCEFULLY ABORTED!"
+            code_msg = f"   Код результату: {code}" if lang == "uk" else f"   Result code: {code}"
+            self.tab_console.append_log(abort_msg)
+            self.tab_console.append_log(code_msg)
             for t_item in threats:
                 self.tab_console.append_log(f"   -> {t_item}")
 

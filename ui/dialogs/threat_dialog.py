@@ -133,7 +133,7 @@ class ThreatItemWidget(QFrame):
         info_col = QVBoxLayout()
         info_col.setSpacing(2)
 
-        file_name = self.file_path.name if self.file_path else "Невідомий файл"
+        file_name = self.file_path.name if self.file_path else ("Unknown file" if self.lang == "en" else "Невідомий файл")
         self.lbl_name = QLabel(f"⚠️  {file_name}", self)
         self.lbl_name.setStyleSheet("color: #ef4444; font-size: 13px; font-weight: 800; background: transparent;")
         info_col.addWidget(self.lbl_name)
@@ -227,7 +227,8 @@ class ThreatItemWidget(QFrame):
             self.btn_allow.setEnabled(False)
             self.btn_allow.setText("✓ Дозволено" if self.lang == "uk" else "✓ Allowed")
             self.btn_del.setEnabled(False)
-            self.lbl_name.setText(f"🛡️  {self.file_path.name} (У винятках)")
+            whitelisted_suffix = "(У винятках)" if self.lang == "uk" else "(Whitelisted)"
+            self.lbl_name.setText(f"🛡️  {self.file_path.name} {whitelisted_suffix}")
             self.lbl_name.setStyleSheet("color: #4ade80; font-size: 13px; font-weight: 800; background: transparent;")
             self.setStyleSheet("""
                 QFrame {
@@ -239,7 +240,9 @@ class ThreatItemWidget(QFrame):
             """)
             self.sig_exception_added.emit(str(self.file_path))
         else:
-            QMessageBox.warning(self, "Помилка", "Не вдалося зберегти виняток.")
+            err_title = "Помилка" if self.lang == "uk" else "Error"
+            err_msg = "Не вдалося зберегти виняток." if self.lang == "uk" else "Failed to save exception."
+            QMessageBox.warning(self, err_title, err_msg)
 
     def _handle_delete(self):
         if not self.file_path or not self.file_path.exists():
@@ -257,7 +260,8 @@ class ThreatItemWidget(QFrame):
             self.btn_del.setText("✓ Видалено" if self.lang == "uk" else "✓ Deleted")
             self.btn_del.setStyleSheet("background: #15803d; color: #ffffff; border-radius: 5px; padding: 6px 12px;")
             self.btn_allow.setEnabled(False)
-            self.lbl_name.setText(f"✓  {self.file_path.name} (Видалено)")
+            deleted_suffix = "(Видалено)" if self.lang == "uk" else "(Deleted)"
+            self.lbl_name.setText(f"✓  {self.file_path.name} {deleted_suffix}")
             self.lbl_name.setStyleSheet("color: #10b981; font-size: 13px; font-weight: 800; background: transparent;")
             self.setStyleSheet("""
                 QFrame {
@@ -269,7 +273,9 @@ class ThreatItemWidget(QFrame):
             """)
             self.sig_file_deleted.emit(str(self.file_path))
         except Exception as e:
-            QMessageBox.warning(self, "Помилка", f"Не вдалося видалити файл:\n{e}")
+            err_title = "Помилка" if self.lang == "uk" else "Error"
+            err_msg = f"Не вдалося видалити файл:\n{e}" if self.lang == "uk" else f"Could not delete file:\n{e}"
+            QMessageBox.warning(self, err_title, err_msg)
 
     def _handle_open_folder(self):
         if self.file_path:
@@ -560,14 +566,18 @@ class ThreatDialog(QDialog):
         cb = QApplication.clipboard()
         if cb:
             cb.setText(self.txt_console.toPlainText())
-            QMessageBox.information(self, "Скопійовано", "Повний звіт скопійовано в буфер обміну!")
+            title = "Скопійовано" if self.lang == "uk" else "Copied"
+            msg = "Повний звіт скопійовано в буфер обміну!" if self.lang == "uk" else "Full report copied to clipboard!"
+            QMessageBox.information(self, title, msg)
 
     def _on_item_deleted(self, file_path_str: str):
-        self.txt_console.appendPlainText(f"\n[УСПІШНО]: Файл видалено з системи: {file_path_str}")
+        log_line = f"\n[УСПІШНО]: Файл видалено з системи: {file_path_str}" if self.lang == "uk" else f"\n[SUCCESS]: File removed from system: {file_path_str}"
+        self.txt_console.appendPlainText(log_line)
         self._check_resolution_state()
 
     def _on_item_allowed(self, file_path_str: str):
-        self.txt_console.appendPlainText(f"\n[ВИЙНЯТОК ЗБЕРЕЖЕНО]: Файл внесено до довірених винятків PZ-ModGuard: {file_path_str}")
+        log_line = f"\n[ВИЙНЯТОК ЗБЕРЕЖЕНО]: Файл внесено до довірених винятків PZ-ModGuard: {file_path_str}" if self.lang == "uk" else f"\n[EXCEPTION SAVED]: File added to trusted PZ-ModGuard exceptions: {file_path_str}"
+        self.txt_console.appendPlainText(log_line)
         self._check_resolution_state()
 
     def _check_resolution_state(self):
@@ -624,11 +634,13 @@ class ThreatDialog(QDialog):
 
         self._check_resolution_state()
         if deleted_count > 0:
-            QMessageBox.information(
-                self,
-                "Успіх",
+            title = "Успіх" if self.lang == "uk" else "Success"
+            msg = (
                 f"Успішно видалено {deleted_count} небезпечних файлів!\nТепер можна запустити гру за кнопкою 'Зберегти і грати'."
+                if self.lang == "uk" else
+                f"Successfully deleted {deleted_count} dangerous files!\nYou can now start the game using the 'Save & Play' button."
             )
+            QMessageBox.information(self, title, msg)
 
     def _allow_all_threats(self):
         allowed_count = 0
@@ -639,11 +651,13 @@ class ThreatDialog(QDialog):
 
         self._check_resolution_state()
         if allowed_count > 0:
-            QMessageBox.information(
-                self,
-                "Успіх",
+            title = "Успіх" if self.lang == "uk" else "Success"
+            msg = (
                 f"Успішно додано {allowed_count} файлів до винятків PZ-ModGuard!\nТепер можна запустити гру за кнопкою 'Зберегти і грати'."
+                if self.lang == "uk" else
+                f"Successfully added {allowed_count} files to PZ-ModGuard exceptions!\nYou can now start the game using the 'Save & Play' button."
             )
+            QMessageBox.information(self, title, msg)
 
     def _handle_rescan(self):
         self.accept()

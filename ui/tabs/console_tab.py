@@ -1,5 +1,5 @@
 """
-Console Tab — Clean terminal view with neutral dark styling and responsive prompt.
+Console Tab — Clean terminal view with neutral dark styling and responsive prompt with full i18n support.
 """
 import time
 from pathlib import Path
@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QTextCursor
 
+from core.i18n import t
+
 
 class ConsoleTab(QWidget):
     sig_run_cmd = pyqtSignal(str)
@@ -19,6 +21,7 @@ class ConsoleTab(QWidget):
         self.config = config_manager
         self.proc_mgr = process_manager
         self._setup_ui()
+        self.retranslate_ui()
 
         self.proc_mgr.sig_log.connect(self.append_log)
 
@@ -37,7 +40,7 @@ class ConsoleTab(QWidget):
         toolbar = QHBoxLayout()
         toolbar.setSpacing(10)
 
-        self.lbl_proc_indicator = QLabel("Гра не запущена", self)
+        self.lbl_proc_indicator = QLabel(self)
         self.lbl_proc_indicator.setStyleSheet(
             "color: #737373; font-size: 11px; font-weight: 600;"
         )
@@ -45,19 +48,19 @@ class ConsoleTab(QWidget):
 
         toolbar.addStretch()
 
-        self.chk_autoscroll = QCheckBox("Автоскрол", self)
+        self.chk_autoscroll = QCheckBox(self)
         self.chk_autoscroll.setChecked(True)
         toolbar.addWidget(self.chk_autoscroll)
 
-        btn_clear = QPushButton("Очистити", self)
-        btn_clear.setProperty("class", "SecondaryButton")
-        btn_clear.clicked.connect(self.clear_console)
-        toolbar.addWidget(btn_clear)
+        self.btn_clear = QPushButton(self)
+        self.btn_clear.setProperty("class", "SecondaryButton")
+        self.btn_clear.clicked.connect(self.clear_console)
+        toolbar.addWidget(self.btn_clear)
 
-        btn_save = QPushButton("Зберегти", self)
-        btn_save.setProperty("class", "SecondaryButton")
-        btn_save.clicked.connect(self._save_log_file)
-        toolbar.addWidget(btn_save)
+        self.btn_save = QPushButton(self)
+        self.btn_save.setProperty("class", "SecondaryButton")
+        self.btn_save.clicked.connect(self._save_log_file)
+        toolbar.addWidget(self.btn_save)
 
         layout.addLayout(toolbar)
 
@@ -79,19 +82,25 @@ class ConsoleTab(QWidget):
         cmd_row.addWidget(lbl_prompt)
 
         self.edit_cmd = QLineEdit(self)
-        self.edit_cmd.setPlaceholderText("Введіть команду CMD для запуску...")
         self.edit_cmd.returnPressed.connect(self._send_command)
         cmd_row.addWidget(self.edit_cmd)
 
-        btn_exec = QPushButton("Виконати", self)
-        btn_exec.setProperty("class", "PrimaryButton")
-        btn_exec.setFixedHeight(34)
-        btn_exec.clicked.connect(self._send_command)
-        cmd_row.addWidget(btn_exec)
+        self.btn_exec = QPushButton(self)
+        self.btn_exec.setProperty("class", "PrimaryButton")
+        self.btn_exec.setFixedHeight(34)
+        self.btn_exec.clicked.connect(self._send_command)
+        cmd_row.addWidget(self.btn_exec)
 
         layout.addLayout(cmd_row)
 
-        self.append_log(f"[{time.strftime('%H:%M:%S')}] Консоль готова. Процеси запускаються автономно.")
+    def retranslate_ui(self):
+        lang = self.config.language
+        self.chk_autoscroll.setText(t("autoscroll", lang))
+        self.btn_clear.setText(t("clear", lang))
+        self.btn_save.setText(t("save", lang))
+        self.edit_cmd.setPlaceholderText(t("cmd_placeholder", lang))
+        self.btn_exec.setText(t("execute", lang))
+        self._check_process_status()
 
     def append_log(self, text: str):
         if not text:
@@ -113,27 +122,29 @@ class ConsoleTab(QWidget):
         self.proc_mgr.execute_custom_cmd(cmd)
 
     def _save_log_file(self):
+        lang = self.config.language
         path, _ = QFileDialog.getSaveFileName(
-            self, "Зберегти лог", f"zomboid_log_{int(time.time())}.log",
+            self, t("save_log_title", lang), f"zomboid_log_{int(time.time())}.log",
             "Log Files (*.log *.txt)"
         )
         if path:
             try:
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(self.terminal.toPlainText())
-                QMessageBox.information(self, "Збережено", f"Лог збережено:\n{path}")
+                QMessageBox.information(self, t("log_saved_title", lang), t("log_saved_msg", lang, path=path))
             except Exception as e:
-                QMessageBox.critical(self, "Помилка", str(e))
+                QMessageBox.critical(self, t("error", lang), str(e))
 
     def _check_process_status(self):
+        lang = self.config.language
         if self.proc_mgr.is_game_running():
             pid = self.proc_mgr.current_pid
-            self.lbl_proc_indicator.setText(f"Гра працює (PID: {pid})")
+            self.lbl_proc_indicator.setText(t("game_running", lang, pid=pid))
             self.lbl_proc_indicator.setStyleSheet(
                 "color: #22c55e; font-size: 11px; font-weight: 700;"
             )
         else:
-            self.lbl_proc_indicator.setText("Гра не запущена")
+            self.lbl_proc_indicator.setText(t("game_not_running", lang))
             self.lbl_proc_indicator.setStyleSheet(
                 "color: #737373; font-size: 11px; font-weight: 600;"
             )

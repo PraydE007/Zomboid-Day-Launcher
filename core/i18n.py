@@ -281,6 +281,18 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "en": "Console ready. Processes run detached from launcher.",
         "uk": "Консоль готова. Процеси запускаються автономно."
     },
+    "save_log_title": {
+        "en": "Save Log",
+        "uk": "Зберегти лог"
+    },
+    "log_saved_title": {
+        "en": "Saved",
+        "uk": "Збережено"
+    },
+    "log_saved_msg": {
+        "en": "Log saved successfully:\n{path}",
+        "uk": "Лог збережено:\n{path}"
+    },
 
     # Settings Tab
     "sec_paths": {
@@ -292,20 +304,32 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "uk": "Репозиторії"
     },
     "sec_launch": {
-        "en": "Launch",
-        "uk": "Запуск"
+        "en": "Launch & Optimization",
+        "uk": "Запуск та оптимізація"
     },
     "lbl_game_dir": {
-        "en": "Project Zomboid folder:",
-        "uk": "Папка Project Zomboid:"
+        "en": "Project Zomboid folder (auto-detected):",
+        "uk": "Папка гри Project Zomboid (визначається автоматично):"
+    },
+    "tip_game_dir": {
+        "en": "Launcher operates strictly relative to its location beside ProjectZomboid64.exe",
+        "uk": "Лаунчер працює суворо відносно власного розміщення поруч із ProjectZomboid64.exe"
     },
     "lbl_user_dir": {
         "en": "Zomboid user profile folder:",
         "uk": "Папка профілю Zomboid:"
     },
     "lbl_hero_image": {
-        "en": "Hero banner image:",
+        "en": "Background hero image:",
         "uk": "Фонова картинка:"
+    },
+    "lbl_ram": {
+        "en": "Allocated RAM:",
+        "uk": "Виділена оперативна пам'ять (RAM):"
+    },
+    "ram_recommended": {
+        "en": "recommended",
+        "uk": "рекомендовано"
     },
     "browse": {
         "en": "Browse",
@@ -351,9 +375,37 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "en": "Scan mods before launch (ModGuard)",
         "uk": "Сканувати моди перед запуском (ModGuard)"
     },
+    "btn_save": {
+        "en": "Save",
+        "uk": "Зберегти"
+    },
+    "saved_title": {
+        "en": "Saved",
+        "uk": "Збережено"
+    },
     "saved_msg": {
         "en": "Settings saved successfully.",
         "uk": "Налаштування збережено."
+    },
+    "dialog_pz_folder": {
+        "en": "Project Zomboid Folder",
+        "uk": "Папка Project Zomboid"
+    },
+    "dialog_user_folder": {
+        "en": "Profile Folder",
+        "uk": "Папка профілю"
+    },
+    "dialog_hero_image": {
+        "en": "Hero Banner Image",
+        "uk": "Картинка банера"
+    },
+    "hotbar_steam_tooltip": {
+        "en": "Steam Workshop Collection",
+        "uk": "Колекція модів у Steam Workshop"
+    },
+    "hotbar_diag_tooltip": {
+        "en": "PZ-ModGuard & System Diagnostics",
+        "uk": "Діагностика системи та PZ-ModGuard"
     },
 
     # Tray Menu

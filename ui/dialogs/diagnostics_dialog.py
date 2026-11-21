@@ -243,7 +243,8 @@ class DiagnosticsDialog(QDialog):
         else:
             btn.setEnabled(True)
             btn.setText(t("btn_reinstall_step", self.lang))
-            QMessageBox.warning(self, "Помилка", msg)
+            err_title = "Помилка" if self.lang == "uk" else "Error"
+            QMessageBox.warning(self, err_title, msg)
 
     def _handle_reinstall_all(self):
         if not self.config:

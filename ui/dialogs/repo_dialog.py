@@ -8,10 +8,16 @@ from PyQt6.QtCore import Qt
 
 
 class RepoEditDialog(QDialog):
-    def __init__(self, repo_data: Optional[Dict[str, Any]] = None, parent=None):
+    def __init__(self, repo_data: Optional[Dict[str, Any]] = None, lang: str = "en", parent=None):
         super().__init__(parent)
         self.repo_data = repo_data or {}
-        self.setWindowTitle("Налаштування репозиторію" if repo_data else "Додати новий репозиторій")
+        self.lang = lang
+        title = (
+            ("Налаштування репозиторію" if repo_data else "Додати новий репозиторій")
+            if self.lang == "uk" else
+            ("Repository Settings" if repo_data else "Add New Repository")
+        )
+        self.setWindowTitle(title)
         self.setMinimumWidth(540)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
@@ -29,57 +35,68 @@ class RepoEditDialog(QDialog):
         card_layout.setSpacing(12)
 
         # Name
-        card_layout.addWidget(QLabel("Назва компонента / репозиторію:"))
+        lbl_name = "Назва компонента / репозиторію:" if self.lang == "uk" else "Component / Repository Name:"
+        card_layout.addWidget(QLabel(lbl_name))
         self.edit_name = QLineEdit(card)
-        self.edit_name.setPlaceholderText("Наприклад: PZ-ModGuard або Zomboid Day Patches")
+        self.edit_name.setPlaceholderText("E.g.: PZ-ModGuard or Zomboid Day Patches" if self.lang == "en" else "Наприклад: PZ-ModGuard або Zomboid Day Patches")
         card_layout.addWidget(self.edit_name)
 
         # ID
-        card_layout.addWidget(QLabel("Унікальний ідентифікатор (ID):"))
+        lbl_id = "Унікальний ідентифікатор (ID):" if self.lang == "uk" else "Unique Identifier (ID):"
+        card_layout.addWidget(QLabel(lbl_id))
         self.edit_id = QLineEdit(card)
-        self.edit_id.setPlaceholderText("Наприклад: pz-modguard")
+        self.edit_id.setPlaceholderText("E.g.: pz-modguard" if self.lang == "en" else "Наприклад: pz-modguard")
         card_layout.addWidget(self.edit_id)
 
         # Source Type
-        card_layout.addWidget(QLabel("Тип джерела:"))
+        lbl_st = "Тип джерела:" if self.lang == "uk" else "Source Type:"
+        card_layout.addWidget(QLabel(lbl_st))
         self.combo_source_type = QComboBox(card)
-        self.combo_source_type.addItems(["Git Репозиторій (URL)", "Локальна папка на диску", "Локальна папка або Git"])
+        if self.lang == "uk":
+            self.combo_source_type.addItems(["Git Репозиторій (URL)", "Локальна папка на диску", "Локальна папка або Git"])
+        else:
+            self.combo_source_type.addItems(["Git Repository (URL)", "Local disk folder", "Local folder or Git"])
         self.combo_source_type.currentIndexChanged.connect(self._on_source_type_changed)
         card_layout.addWidget(self.combo_source_type)
 
         # Git URL
-        self.lbl_git_url = QLabel("Git URL репозиторію:")
+        lbl_gurl = "Git URL репозиторію:" if self.lang == "uk" else "Repository Git URL:"
+        self.lbl_git_url = QLabel(lbl_gurl)
         card_layout.addWidget(self.lbl_git_url)
         self.edit_git_url = QLineEdit(card)
         self.edit_git_url.setPlaceholderText("https://github.com/author/repository.git")
         card_layout.addWidget(self.edit_git_url)
 
         # Branch
-        self.lbl_branch = QLabel("Гілка Git (Branch):")
+        lbl_br = "Гілка Git (Branch):" if self.lang == "uk" else "Git Branch:"
+        self.lbl_branch = QLabel(lbl_br)
         card_layout.addWidget(self.lbl_branch)
         self.edit_branch = QLineEdit(card)
         self.edit_branch.setText("main")
         card_layout.addWidget(self.edit_branch)
 
         # Local Path
-        self.lbl_local_path = QLabel("Шлях до локальної папки:")
+        lbl_lp = "Шлях до локальної папки:" if self.lang == "uk" else "Local Folder Path:"
+        self.lbl_local_path = QLabel(lbl_lp)
         card_layout.addWidget(self.lbl_local_path)
         loc_row = QHBoxLayout()
         self.edit_local_path = QLineEdit(card)
         self.edit_local_path.setPlaceholderText(r"C:\Users\...\MyRepo")
         loc_row.addWidget(self.edit_local_path)
-        self.btn_browse_local = QPushButton("Огляд...", card)
+        self.btn_browse_local = QPushButton("Огляд..." if self.lang == "uk" else "Browse...", card)
         self.btn_browse_local.setProperty("class", "SecondaryButton")
         self.btn_browse_local.clicked.connect(self._browse_local_folder)
         loc_row.addWidget(self.btn_browse_local)
         card_layout.addLayout(loc_row)
 
         # Checkboxes
-        self.chk_manifest = QCheckBox("Містить файл launcher-manifest.json (автоматичні кроки та валідація)", card)
+        chk_man_txt = "Містить файл launcher-manifest.json (автоматичні кроки та валідація)" if self.lang == "uk" else "Contains launcher-manifest.json (automatic steps & validation)"
+        self.chk_manifest = QCheckBox(chk_man_txt, card)
         self.chk_manifest.setChecked(True)
         card_layout.addWidget(self.chk_manifest)
 
-        self.chk_enabled = QCheckBox("Увімкнено для встановлення", card)
+        chk_en_txt = "Увімкнено для встановлення" if self.lang == "uk" else "Enabled for installation"
+        self.chk_enabled = QCheckBox(chk_en_txt, card)
         self.chk_enabled.setChecked(True)
         card_layout.addWidget(self.chk_enabled)
 
@@ -89,12 +106,12 @@ class RepoEditDialog(QDialog):
         btn_row = QHBoxLayout()
         btn_row.addStretch()
 
-        btn_cancel = QPushButton("Скасувати", self)
+        btn_cancel = QPushButton("Скасувати" if self.lang == "uk" else "Cancel", self)
         btn_cancel.setProperty("class", "SecondaryButton")
         btn_cancel.clicked.connect(self.reject)
         btn_row.addWidget(btn_cancel)
 
-        btn_save = QPushButton("Зберегти", self)
+        btn_save = QPushButton("Зберегти" if self.lang == "uk" else "Save", self)
         btn_save.setProperty("class", "PrimaryButton")
         btn_save.clicked.connect(self._validate_and_save)
         btn_row.addWidget(btn_save)
@@ -150,7 +167,8 @@ class RepoEditDialog(QDialog):
             self.btn_browse_local.setVisible(True)
 
     def _browse_local_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Виберіть папку репозиторію")
+        title = "Виберіть папку репозиторію" if self.lang == "uk" else "Select repository folder"
+        folder = QFileDialog.getExistingDirectory(self, title)
         if folder:
             self.edit_local_path.setText(folder)
             if not self.edit_name.text():
@@ -162,7 +180,9 @@ class RepoEditDialog(QDialog):
         name = self.edit_name.text().strip()
         rid = self.edit_id.text().strip()
         if not name:
-            QMessageBox.warning(self, "Помилка", "Вкажіть назву репозиторію!")
+            err_title = "Помилка" if self.lang == "uk" else "Error"
+            err_msg = "Вкажіть назву репозиторію!" if self.lang == "uk" else "Please specify repository name!"
+            QMessageBox.warning(self, err_title, err_msg)
             return
         if not rid:
             rid = name.lower().replace(" ", "-")
@@ -175,7 +195,9 @@ class RepoEditDialog(QDialog):
         local_path = self.edit_local_path.text().strip()
 
         if source_type in ["git", "local_or_git"] and not git_url and not local_path:
-            QMessageBox.warning(self, "Помилка", "Вкажіть Git URL або локальний шлях!")
+            err_title = "Помилка" if self.lang == "uk" else "Error"
+            err_msg = "Вкажіть Git URL або локальний шлях!" if self.lang == "uk" else "Please specify Git URL or local folder path!"
+            QMessageBox.warning(self, err_title, err_msg)
             return
 
         self.result_data = {
