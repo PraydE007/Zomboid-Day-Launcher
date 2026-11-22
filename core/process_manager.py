@@ -126,11 +126,19 @@ class LogWatcherThread(QThread):
             with open(self.log_file, "r", encoding="utf-8", errors="replace") as f:
                 f.seek(self.start_offset)
                 while self._running:
+                    # Detect if file was truncated by newly launched process
+                    try:
+                        cur_size = self.log_file.stat().st_size
+                        if cur_size < f.tell():
+                            f.seek(0)
+                    except Exception:
+                        pass
+
                     line = f.readline()
                     if line:
                         self.sig_new_line.emit(line.rstrip("\r\n"))
                     else:
-                        time.sleep(0.25)
+                        time.sleep(0.2)
         except Exception as e:
             self.sig_new_line.emit(f"[LogWatcher помилка]: {e}")
 
@@ -259,9 +267,10 @@ class LaunchCrashWatcher(QThread):
     sig_launch_failed = pyqtSignal(str)
     sig_launch_succeeded = pyqtSignal(int)
 
-    def __init__(self, process_manager, start_offset: int = 0, parent=None):
+    def __init__(self, process_manager, log_path: Optional[Path] = None, start_offset: int = 0, parent=None):
         super().__init__(parent)
         self.mgr = process_manager
+        self.log_path = Path(log_path) if log_path else None
         self.start_offset = start_offset
         self._running = True
 
@@ -282,14 +291,15 @@ class LaunchCrashWatcher(QThread):
             "cannot find"
         ]
 
+        target_log = self.log_path or self.mgr.session_log_path
         found_game = False
         while self._running and (time.time() - start_time < 6.5):
             time.sleep(0.3)
 
             # 1. Scan session log strictly for fatal errors written during this session
-            if self.mgr.session_log_path.exists():
+            if target_log.exists():
                 try:
-                    with open(self.mgr.session_log_path, "r", encoding="utf-8", errors="ignore") as f:
+                    with open(target_log, "r", encoding="utf-8", errors="ignore") as f:
                         f.seek(self.start_offset)
                         new_content = f.read()
                     if new_content:
@@ -472,15 +482,20 @@ class ProcessManager(QObject):
         env = os.environ.copy()
         env["PATH"] = f"{str(game_dir)};{str(game_dir / 'jre64' / 'bin')};{str(game_dir / 'win64')};" + env.get("PATH", "")
 
-        show_ext_cmd = self.config.show_external_cmd or is_debug
+        show_ext_cmd = bool(self.config.show_external_cmd)
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
         if show_ext_cmd:
+            # User opted into seeing the external console window: display logs directly in console
             creationflags |= subprocess.CREATE_NEW_CONSOLE
+            wrapper_cmd = f'cmd.exe /c "call "{bat_path}""'
+            user_console = Path(self.config.user_zomboid_dir) / "console.txt"
+            active_log = user_console
+            start_offset = user_console.stat().st_size if user_console.exists() else 0
         else:
+            # Completely hidden background execution: NO visible CMD window
             creationflags |= subprocess.CREATE_NO_WINDOW
-
-        # Add '< nul' to ensure batch files never hang on PAUSE
-        wrapper_cmd = f'cmd.exe /c "call "{bat_path}" < nul >> "{self.session_log_path}" 2>&1"'
+            wrapper_cmd = f'cmd.exe /c "call "{bat_path}" < nul >> "{self.session_log_path}" 2>&1"'
+            active_log = self.session_log_path
 
         self.sig_log.emit(f"Запуск гри: {bat_path} ({mode_name})")
         self.sig_log.emit(f"Папка виконання: {game_dir}")
@@ -498,12 +513,12 @@ class ProcessManager(QObject):
             self._last_status = True
             self.sig_log.emit(f"Процес запущено (батнік PID: {self.batch_proc.pid})")
 
-            self.watcher = LogWatcherThread(self.session_log_path, start_offset=start_offset)
+            self.watcher = LogWatcherThread(active_log, start_offset=start_offset)
             self.watcher.sig_new_line.connect(lambda line: self.sig_log.emit(line))
             self.watcher.start()
 
             # Start launch crash watcher strictly tracking this session
-            self.launch_watcher = LaunchCrashWatcher(self, start_offset=start_offset)
+            self.launch_watcher = LaunchCrashWatcher(self, log_path=active_log, start_offset=start_offset)
             self.launch_watcher.sig_launch_failed.connect(self._on_launch_failed)
             self.launch_watcher.sig_launch_succeeded.connect(self._on_launch_succeeded)
             self.launch_watcher.start()
