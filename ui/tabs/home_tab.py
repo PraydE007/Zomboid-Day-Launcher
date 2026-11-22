@@ -142,25 +142,24 @@ class HeroBannerWidget(QWidget):
 
 class StyledTitleWidget(QWidget):
     """
-    Renders the game title and subtitle with 3D drop shadow and dual-color typography:
+    Renders the game title with 3D drop shadow and dual-color typography:
     'ZOMBOID DAY' prominent in toxic green (#22c55e, size 46),
     and ONLY 'PROJECT' in smaller crisp white (#ffffff, size 24).
-    Rendered with native QPainter so it is completely immune to modal dialog focus or mouse clicks.
+    Subtitle removed per user request for clean foreground legibility.
     """
     def __init__(self, subtitle_text: str = "", parent=None):
         super().__init__(parent)
-        self.subtitle_text = subtitle_text
+        self.subtitle_text = ""
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        self.setFixedHeight(84)
+        self.setFixedHeight(64)
 
     def set_subtitle(self, text: str):
-        self.subtitle_text = text
-        self.update()
+        pass  # Subtitle tagline removed per user request
 
     def setText(self, text: str):
-        self.set_subtitle(text)
+        pass
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -207,23 +206,6 @@ class StyledTitleWidget(QWidget):
         painter.setFont(font_proj)
         painter.setPen(QColor("#ffffff"))
         painter.drawText(w1, base_y, part2)
-
-        # 3. Subtitle Tagline
-        if self.subtitle_text:
-            sub_font = QFont("Segoe UI", 10)
-            sub_font.setWeight(QFont.Weight.Bold)
-            sub_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.4)
-            painter.setFont(sub_font)
-            sub_fm = painter.fontMetrics()
-            sub_y = base_y + sub_fm.height() + 6
-
-            # Subtitle Shadow
-            painter.setPen(QColor(0, 0, 0, 220))
-            painter.drawText(1, sub_y + 1, self.subtitle_text)
-
-            # Subtitle Text
-            painter.setPen(QColor("#d4d4d4"))
-            painter.drawText(0, sub_y, self.subtitle_text)
 
 
 # Button Styles for Main Actions (Explicit QSS ensures 100% reliable background fill in Qt6)
@@ -370,25 +352,49 @@ class HomeTab(QWidget):
         badge_row = QHBoxLayout()
         badge_row.setSpacing(10)
 
-        # Version Pill Badge
+        # Version Pill Badge (100% solid opaque fill)
         self.badge_version = QLabel(t("checking_version", lang), self.hero)
+        self.badge_version.setObjectName("badge_version")
         self.badge_version.setFixedHeight(24)
         self.badge_version.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self.badge_version.setStyleSheet("""
-            background-color: rgba(0, 0, 0, 0.40);
-            color: #22c55e;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 12px;
-            padding: 2px 14px;
-            font-size: 11px;
-            font-weight: 600;
+            QLabel#badge_version {
+                background-color: #141414;
+                color: #22c55e;
+                border: 1px solid #22c55e;
+                border-radius: 12px;
+                padding: 2px 14px;
+                font-family: 'Segoe UI', -apple-system, sans-serif;
+                font-size: 11px;
+                font-weight: 700;
+            }
         """)
         badge_row.addWidget(self.badge_version)
 
-        # Quick Diagnostics Action Pill
+        # Quick Diagnostics Action Pill (100% solid opaque fill)
         self.btn_diag = QPushButton(f"🔍 {t('view_diagnostics', lang)}", self.hero)
-        self.btn_diag.setProperty("class", "SecondaryButton")
+        self.btn_diag.setObjectName("btn_diag")
         self.btn_diag.setFixedHeight(24)
+        self.btn_diag.setStyleSheet("""
+            QPushButton#btn_diag {
+                background-color: #141414;
+                color: #e4e4e7;
+                border: 1px solid #383838;
+                border-radius: 12px;
+                padding: 2px 14px;
+                font-family: 'Segoe UI', -apple-system, sans-serif;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            QPushButton#btn_diag:hover {
+                background-color: #262626;
+                color: #ffffff;
+                border-color: #525252;
+            }
+            QPushButton#btn_diag:pressed {
+                background-color: #0d0d0d;
+            }
+        """)
         self.btn_diag.clicked.connect(self._open_diagnostics)
         badge_row.addWidget(self.btn_diag)
 
@@ -408,8 +414,8 @@ class HomeTab(QWidget):
         self.launch_container.setVisible(False)
         self.launch_container.setStyleSheet("""
             #LaunchContainer {
-                background-color: rgba(18, 18, 18, 0.88);
-                border: 1px solid rgba(34, 197, 94, 0.5);
+                background-color: #141414;
+                border: 1px solid #22c55e;
                 border-radius: 12px;
             }
         """)
@@ -601,13 +607,16 @@ class HomeTab(QWidget):
 
         self.badge_version.setText(badge_text)
         self.badge_version.setStyleSheet(f"""
-            background-color: rgba(0, 0, 0, 0.40);
-            color: {color};
-            border: 1px solid {color};
-            border-radius: 12px;
-            padding: 2px 14px;
-            font-size: 11px;
-            font-weight: 600;
+            QLabel#badge_version {{
+                background-color: #141414;
+                color: {color};
+                border: 1px solid {color};
+                border-radius: 12px;
+                padding: 2px 14px;
+                font-family: 'Segoe UI', -apple-system, sans-serif;
+                font-size: 11px;
+                font-weight: 700;
+            }}
         """)
 
         # 3. Main Action Button: Green PLAY if ready, Red FIX if not ready

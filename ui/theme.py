@@ -289,18 +289,18 @@ QPushButton.ModGuardButton:disabled {
 }
 
 #WarningBanner {
-    background-color: rgba(30, 20, 5, 0.85);
-    border: 1px solid #b45309;
+    background-color: #1c1507;
+    border: 1px solid #d97706;
     border-radius: 6px;
     color: #fbbf24;
-    padding: 6px 12px;
+    padding: 7px 14px;
     font-size: 11px;
     font-weight: 600;
 }
 #WarningBanner[status="danger"] {
-    background-color: rgba(45, 12, 12, 0.92);
-    border: 1px solid #dc2626;
-    color: #fca5a5;
+    background-color: #220808;
+    border: 1px solid #ef4444;
+    color: #fecaca;
     font-weight: 700;
 }
 
