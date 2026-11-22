@@ -11,9 +11,9 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QProgressBar, QSizePolicy, QGraphicsDropShadowEffect, QComboBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF
 from PyQt6.QtGui import (
-    QPixmap, QPainter, QLinearGradient, QColor, QBrush,
+    QPixmap, QPainter, QLinearGradient, QRadialGradient, QColor, QBrush,
     QPainterPath, QFont
 )
 
@@ -28,6 +28,7 @@ class HeroBannerWidget(QWidget):
     """
     Background image widget anchored strictly to top edge (y=0).
     Pre-renders and caches scaled pixmap on resize to ensure 60+ FPS butter-smooth rendering.
+    Overlays a subtle micro-dot halftone matrix matching mriyu.com/bio/prayde007 (.bio-fx-dots).
     Keeps background artwork clear and vibrant with only a soft bottom fade for action buttons.
     """
     def __init__(self, image_path: str, parent=None):
@@ -35,8 +36,33 @@ class HeroBannerWidget(QWidget):
         self.image_path = image_path
         self.source_pixmap: Optional[QPixmap] = None
         self._cached_pixmap: Optional[QPixmap] = None
+        self._dot_brush: QBrush = self._create_dot_grid_brush()
         self._load_image()
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    @staticmethod
+    def _create_dot_grid_brush() -> QBrush:
+        """
+        Creates a high-performance tiled texture brush matching the exact
+        .bio-fx-dots pattern from mriyu.com/bio/prayde007:
+        radial-gradient(#0009 1.3px, #0000 1.8px) with background-size: 6px 6px.
+        """
+        cell_size = 6
+        radius = 1.3
+        pix = QPixmap(cell_size, cell_size)
+        pix.fill(Qt.GlobalColor.transparent)
+        p = QPainter(pix)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setPen(Qt.PenStyle.NoPen)
+        grad = QRadialGradient(cell_size / 2.0, cell_size / 2.0, radius * 1.35)
+        # #0009 in CSS is rgba(0, 0, 0, 0.56) ~= alpha 145-160
+        grad.setColorAt(0.0, QColor(0, 0, 0, 160))
+        grad.setColorAt(0.72, QColor(0, 0, 0, 135))
+        grad.setColorAt(1.0, QColor(0, 0, 0, 0))
+        p.setBrush(QBrush(grad))
+        p.drawEllipse(QPointF(cell_size / 2.0, cell_size / 2.0), radius * 1.35, radius * 1.35)
+        p.end()
+        return QBrush(pix)
 
     def _load_image(self):
         if self.image_path and Path(self.image_path).exists():
@@ -94,6 +120,9 @@ class HeroBannerWidget(QWidget):
             painter.drawPixmap(0, 0, self._cached_pixmap)
         else:
             painter.fillRect(rect, QColor("#121212"))
+
+        # --- DOT GRID OVERLAY (mriyu.com .bio-fx-dots pattern) ---
+        painter.fillRect(rect, self._dot_brush)
 
         # --- FADES & GRADIENTS ---
         # 1. Subtle top seam fade (only 35px to smoothly connect with nav bar)
