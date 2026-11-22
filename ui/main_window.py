@@ -43,33 +43,18 @@ class CustomTitleBar(QWidget):
         # Clean drag strip across the top (no icon, no title text)
         layout.addStretch()
 
-        # Window controls: Minimize, Maximize, Close
+        # Window controls: Minimize, Close
         btn_min = QPushButton("−", self)
         btn_min.setObjectName("TitleButton")
         btn_min.setFixedSize(36, 34)
         btn_min.clicked.connect(self.win.showMinimized)
         layout.addWidget(btn_min)
 
-        self.btn_max = QPushButton("□", self)
-        self.btn_max.setObjectName("TitleButton")
-        self.btn_max.setFixedSize(36, 34)
-        self.btn_max.clicked.connect(self._toggle_maximize)
-        layout.addWidget(self.btn_max)
-
         btn_close = QPushButton("✕", self)
         btn_close.setObjectName("CloseButton")
         btn_close.setFixedSize(40, 34)
         btn_close.clicked.connect(self.win.close)
         layout.addWidget(btn_close)
-
-    def _toggle_maximize(self):
-        if self.win.isMaximized():
-            self.win.showNormal()
-            self.btn_max.setText("□")
-        else:
-            self.win.showMaximized()
-            self.btn_max.setText("❐")
-        self.win._update_window_shape()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:

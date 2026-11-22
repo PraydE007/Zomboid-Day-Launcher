@@ -81,7 +81,7 @@ class InstallWorker(QThread):
 
             self.sig_progress.emit(5, "Синхронізація репозиторіїв...")
             all_steps = []
-            detected_version = "1.0.1"
+            detected_version = "1.0.3"
 
             # Step 1: Sync all repositories in order
             for i, repo_info in enumerate(enabled_repos, start=1):

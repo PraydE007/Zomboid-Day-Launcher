@@ -38,11 +38,11 @@ class VersionChecker:
                     target_manifest = cached_p
                     break
 
-        repo_version = "1.0.1"
+        repo_version = "1.0.3"
         if target_manifest and target_manifest.exists():
             try:
                 p = ManifestParser(target_manifest)
-                repo_version = str(p.version or "1.0.1").lstrip("v")
+                repo_version = str(p.version or "1.0.3").lstrip("v")
             except Exception:
                 pass
 
@@ -97,13 +97,13 @@ class VersionChecker:
             ]
             missing = [str(f) for f in standard_required if not f.exists()]
             installed = len(missing) == 0
-            installed_ver = str(self.config.get("installed_version", "") or ("1.0.1" if installed else "")).lstrip("v")
+            installed_ver = str(self.config.get("installed_version", "") or ("1.0.3" if installed else "")).lstrip("v")
 
             if not installed:
                 return {
                     "status": VersionStatus.NOT_INSTALLED,
                     "version": "",
-                    "repo_version": "1.0.1",
+                    "repo_version": "1.0.3",
                     "installed_version": "",
                     "text": t("status_not_installed", lang),
                     "color": "#ef4444",
@@ -124,7 +124,7 @@ class VersionChecker:
         try:
             parser = ManifestParser(target_manifest, context)
             is_valid, missing = parser.validate_installation()
-            manifest_version = str(parser.version or "1.0.1").lstrip("v")
+            manifest_version = str(parser.version or "1.0.3").lstrip("v")
             saved_version = str(self.config.get("installed_version", "")).lstrip("v")
 
             if not is_valid:
