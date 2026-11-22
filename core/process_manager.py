@@ -104,6 +104,7 @@ def _fast_find_process(target_names: Set[str], game_dir: Optional[str] = None) -
 
 class LogWatcherThread(QThread):
     sig_new_line = pyqtSignal(str)
+    sig_lines_batch = pyqtSignal(list)
 
     def __init__(self, log_file: Path, start_offset: int = 0, parent=None):
         super().__init__(parent)
@@ -134,11 +135,18 @@ class LogWatcherThread(QThread):
                     except Exception:
                         pass
 
-                    line = f.readline()
-                    if line:
-                        self.sig_new_line.emit(line.rstrip("\r\n"))
+                    batch = []
+                    # Read up to 300 lines in one go when available
+                    for _ in range(300):
+                        line = f.readline()
+                        if not line:
+                            break
+                        batch.append(line.rstrip("\r\n"))
+
+                    if batch:
+                        self.sig_lines_batch.emit(batch)
                     else:
-                        time.sleep(0.2)
+                        time.sleep(0.035)  # ~30 FPS ultra-smooth polling
         except Exception as e:
             self.sig_new_line.emit(f"[LogWatcher помилка]: {e}")
 
@@ -337,6 +345,7 @@ class LaunchCrashWatcher(QThread):
 
 class ProcessManager(QObject):
     sig_log = pyqtSignal(str)
+    sig_log_batch = pyqtSignal(list)
     sig_process_started = pyqtSignal(int, str)
     sig_process_stopped = pyqtSignal(int)
     sig_game_crashed = pyqtSignal(str)
@@ -514,6 +523,7 @@ class ProcessManager(QObject):
             self.sig_log.emit(f"Процес запущено (батнік PID: {self.batch_proc.pid})")
 
             self.watcher = LogWatcherThread(active_log, start_offset=start_offset)
+            self.watcher.sig_lines_batch.connect(self.sig_log_batch.emit)
             self.watcher.sig_new_line.connect(lambda line: self.sig_log.emit(line))
             self.watcher.start()
 
