@@ -101,15 +101,17 @@ class HeroBannerWidget(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = self.rect()
-        w = float(rect.width())
-        h = float(rect.height())
+        # Inset by 1px at the bottom and right to stay strictly inside MainShell's 1px border (#262626)
+        # Prevents 1px background image bleed/overhang at the bottom-left seam and bottom edge
+        w = float(rect.width()) - 1.0
+        h = float(rect.height()) - 1.0
 
-        # Clip bottom-right corner to match window shell border-radius (14px)
+        # Clip bottom-right corner to match window shell inner border-radius (13px)
         clip_path = QPainterPath()
         clip_path.moveTo(0, 0)
         clip_path.lineTo(w, 0)
-        clip_path.lineTo(w, max(0.0, h - 14.0))
-        clip_path.quadTo(w, h, max(0.0, w - 14.0), h)
+        clip_path.lineTo(w, max(0.0, h - 13.0))
+        clip_path.quadTo(w, h, max(0.0, w - 13.0), h)
         clip_path.lineTo(0, h)
         clip_path.lineTo(0, 0)
         clip_path.closeSubpath()
