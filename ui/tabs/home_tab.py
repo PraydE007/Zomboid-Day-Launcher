@@ -155,7 +155,7 @@ class StyledTitleWidget(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        self.setFixedHeight(64)
+        self.setFixedHeight(80)
 
     def set_subtitle(self, text: str):
         pass  # Subtitle tagline removed per user request
