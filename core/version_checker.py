@@ -10,7 +10,7 @@ from core.manifest_parser import ManifestParser
 from core.utils import get_app_dir
 from core.i18n import t
 
-CURRENT_LAUNCHER_VERSION = "1.1.2"
+CURRENT_LAUNCHER_VERSION = "1.1.3"
 REMOTE_MANIFEST_URL = "https://raw.githubusercontent.com/PraydE007/Zomboid-Day-Launcher-Files/main/launcher-manifest.json"
 GITHUB_LATEST_RELEASE_API = "https://api.github.com/repos/PraydE007/Zomboid-Day-Launcher/releases/latest"
 
@@ -168,35 +168,39 @@ class VersionChecker:
         }
 
         # Resolve target manifest:
-        # Priority 1: local repository from config (for dev / local path)
-        # Priority 2: cached repo manifest (zd-launcher/cache/repos/zomboid-day-files/launcher-manifest.json)
-        # Priority 3: downloaded remote manifest (zd-launcher/cache/remote_manifest.json)
-        # Priority 4: try fast network fetch if no manifest found yet
+        # Priority 1: Remote GitHub Raw manifest (always source of truth for updates)
+        # Priority 2: Cached remote manifest (zd-launcher/cache/remote_manifest.json)
+        # Priority 3: Cached repo manifest from git clone (zd-launcher/cache/repos/zomboid-day-files/launcher-manifest.json)
+        # Priority 4: Local dev directory (only if explicitly specified and exists)
         target_manifest: Optional[Path] = None
-        repos = self.config.repositories
-        for r in repos:
-            if r.get("has_manifest"):
-                local_p = Path(r.get("local_path", ""))
-                if local_p.exists() and (local_p / "launcher-manifest.json").exists():
-                    target_manifest = local_p / "launcher-manifest.json"
-                    break
-                cached_p = base_dir / "cache" / "repos" / r.get("id", "") / "launcher-manifest.json"
-                if cached_p.exists():
-                    target_manifest = cached_p
-                    break
 
-        remote_manifest_cached = base_dir / "cache" / "remote_manifest.json"
-        if not target_manifest and remote_manifest_cached.exists():
-            target_manifest = remote_manifest_cached
-
-        # On another PC without local/cached manifest, check remote manifest
-        if not target_manifest and self.config.get("auto_check_updates", True):
+        # 1. First, check remote manifest from GitHub if auto_check_updates is enabled or if forced
+        if self.config.get("auto_check_updates", True):
             try:
-                rem = self.fetch_remote_updates_sync(force=False, timeout=2.0)
+                rem = self.fetch_remote_updates_sync(force=False, timeout=2.5)
                 if rem.get("manifest_path") and Path(rem["manifest_path"]).exists():
                     target_manifest = Path(rem["manifest_path"])
             except Exception:
                 pass
+
+        # 2. If remote not reached right now, check cached remote manifest
+        remote_manifest_cached = base_dir / "cache" / "remote_manifest.json"
+        if not target_manifest and remote_manifest_cached.exists():
+            target_manifest = remote_manifest_cached
+
+        # 3. Fallback to cached git repository clone or local path
+        if not target_manifest:
+            repos = self.config.repositories
+            for r in repos:
+                if r.get("has_manifest"):
+                    cached_p = base_dir / "cache" / "repos" / r.get("id", "") / "launcher-manifest.json"
+                    if cached_p.exists():
+                        target_manifest = cached_p
+                        break
+                    local_p = Path(r.get("local_path", ""))
+                    if local_p.name and local_p.exists() and (local_p / "launcher-manifest.json").exists():
+                        target_manifest = local_p / "launcher-manifest.json"
+                        break
 
         repo_version = CURRENT_LAUNCHER_VERSION
         if target_manifest and target_manifest.exists():
