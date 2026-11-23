@@ -10,7 +10,7 @@ from core.manifest_parser import ManifestParser
 from core.utils import get_app_dir
 from core.i18n import t
 
-CURRENT_LAUNCHER_VERSION = "1.1.0"
+CURRENT_LAUNCHER_VERSION = "1.1.1"
 REMOTE_MANIFEST_URL = "https://raw.githubusercontent.com/PraydE007/Zomboid-Day-Launcher-Files/main/launcher-manifest.json"
 GITHUB_LATEST_RELEASE_API = "https://api.github.com/repos/PraydE007/Zomboid-Day-Launcher/releases/latest"
 

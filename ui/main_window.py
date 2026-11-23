@@ -169,7 +169,6 @@ class MainWindow(QMainWindow):
         self.tab_home.sig_start_clicked.connect(self._handle_start)
         self.tab_home.sig_language_changed.connect(self._handle_language_changed)
         self.tab_settings.sig_settings_saved.connect(self._handle_settings_saved)
-        self.tab_settings.sig_hero_image_changed.connect(self.tab_home.hero.set_image)
         self.proc_mgr.sig_game_crashed.connect(self._on_game_crashed)
         self.proc_mgr.sig_process_stopped.connect(lambda pid: self.tab_home.refresh_status())
 

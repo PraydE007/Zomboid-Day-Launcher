@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from core.utils import get_app_dir
-from core.config import detect_steam_pz_path, detect_user_zomboid_dir, get_default_hero_image
+from core.config import detect_steam_pz_path, detect_user_zomboid_dir
 from core.i18n import t
 
 
@@ -29,7 +29,6 @@ class _SectionHeader(QLabel):
 
 class SettingsTab(QWidget):
     sig_settings_saved = pyqtSignal()
-    sig_hero_image_changed = pyqtSignal(str)
 
     def __init__(self, config_manager, parent=None):
         super().__init__(parent)
@@ -63,14 +62,6 @@ class SettingsTab(QWidget):
         self.hdr_paths = _SectionHeader("", card_paths)
         lp.addWidget(self.hdr_paths)
 
-        self.lbl_game_dir = QLabel(card_paths)
-        lp.addWidget(self.lbl_game_dir)
-        row_gd = QHBoxLayout()
-        self.edit_game_dir = QLineEdit(card_paths)
-        self.edit_game_dir.setReadOnly(True)
-        row_gd.addWidget(self.edit_game_dir)
-        lp.addLayout(row_gd)
-
         self.lbl_user_dir = QLabel(card_paths)
         lp.addWidget(self.lbl_user_dir)
         row_ud = QHBoxLayout()
@@ -81,21 +72,6 @@ class SettingsTab(QWidget):
         self.btn_br_u.clicked.connect(self._browse_user_dir)
         row_ud.addWidget(self.btn_br_u)
         lp.addLayout(row_ud)
-
-        self.lbl_hero = QLabel(card_paths)
-        lp.addWidget(self.lbl_hero)
-        row_h = QHBoxLayout()
-        self.edit_hero = QLineEdit(card_paths)
-        row_h.addWidget(self.edit_hero)
-        self.btn_br_h = QPushButton(card_paths)
-        self.btn_br_h.setProperty("class", "SecondaryButton")
-        self.btn_br_h.clicked.connect(self._browse_hero_image)
-        row_h.addWidget(self.btn_br_h)
-        self.btn_rst = QPushButton(card_paths)
-        self.btn_rst.setProperty("class", "SecondaryButton")
-        self.btn_rst.clicked.connect(self._reset_hero_image)
-        row_h.addWidget(self.btn_rst)
-        lp.addLayout(row_h)
 
         main.addWidget(card_paths)
 
@@ -147,14 +123,8 @@ class SettingsTab(QWidget):
     def retranslate_ui(self):
         lang = self.config.language
         self.hdr_paths.set_header_text(t("sec_paths", lang))
-        self.lbl_game_dir.setText(t("lbl_game_dir", lang))
-        self.edit_game_dir.setToolTip(t("tip_game_dir", lang))
         self.lbl_user_dir.setText(t("lbl_user_dir", lang))
         self.btn_br_u.setText(t("browse", lang))
-
-        self.lbl_hero.setText(t("lbl_hero_image", lang))
-        self.btn_br_h.setText(t("browse", lang))
-        self.btn_rst.setText(t("reset", lang))
 
         self.hdr_launch.set_header_text(t("sec_launch", lang))
         self.lbl_ram.setText(t("lbl_ram", lang))
@@ -180,9 +150,7 @@ class SettingsTab(QWidget):
         self.btn_save.setText(t("btn_save", lang))
 
     def _load_settings(self):
-        self.edit_game_dir.setText(self.config.game_dir)
         self.edit_user_dir.setText(self.config.user_zomboid_dir)
-        self.edit_hero.setText(self.config.hero_image)
         self.chk_tray_on_start.setChecked(self.config.hide_to_tray_on_start)
         self.chk_show_cmd.setChecked(self.config.show_external_cmd)
         self.chk_scan_modguard.setChecked(self.config.get("scan_modguard_before_launch", True))
@@ -203,23 +171,10 @@ class SettingsTab(QWidget):
         if f:
             self.edit_user_dir.setText(f)
 
-    def _browse_hero_image(self):
-        lang = self.config.language
-        f, _ = QFileDialog.getOpenFileName(self, t("dialog_hero_image", lang), "", "Images (*.png *.jpg *.jpeg *.webp)")
-        if f:
-            self.edit_hero.setText(f)
-            self.sig_hero_image_changed.emit(f)
-
-    def _reset_hero_image(self):
-        d = get_default_hero_image()
-        self.edit_hero.setText(d)
-        self.sig_hero_image_changed.emit(d)
-
     def _save_settings(self):
         lang = self.config.language
         self.config.set("game_dir", str(get_app_dir()))
         self.config.set("user_zomboid_dir", self.edit_user_dir.text().strip())
-        self.config.set("hero_image", self.edit_hero.text().strip())
         self.config.set("hide_to_tray_on_start", self.chk_tray_on_start.isChecked())
         self.config.set("show_external_cmd", self.chk_show_cmd.isChecked())
         self.config.set("scan_modguard_before_launch", self.chk_scan_modguard.isChecked())

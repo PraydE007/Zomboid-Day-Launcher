@@ -135,7 +135,7 @@ class SystemDetector:
         from core.version_checker import VersionChecker, VersionStatus
         vc = VersionChecker(self.config)
         ver_info = vc.check_status(lang)
-        repo_v = ver_info.get("repo_version", "1.1.0")
+        repo_v = ver_info.get("repo_version", "1.1.1")
         inst_v = ver_info.get("installed_version") or self.config.get("installed_version", "")
         ver_status = ver_info.get("status")
         v_ok = (ver_status == VersionStatus.UP_TO_DATE)
