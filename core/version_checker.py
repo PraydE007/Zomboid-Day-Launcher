@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 import urllib.request
@@ -10,9 +11,17 @@ from core.manifest_parser import ManifestParser
 from core.utils import get_app_dir
 from core.i18n import t
 
-CURRENT_LAUNCHER_VERSION = "1.1.3"
+CURRENT_LAUNCHER_VERSION = "1.1.4"
 REMOTE_MANIFEST_URL = "https://raw.githubusercontent.com/PraydE007/Zomboid-Day-Launcher-Files/main/launcher-manifest.json"
 GITHUB_LATEST_RELEASE_API = "https://api.github.com/repos/PraydE007/Zomboid-Day-Launcher/releases/latest"
+
+
+def parse_version_tuple(v: Any) -> Tuple[int, ...]:
+    """Parse version string like '1.1.3' or 'v1.1.3' into an integer tuple for robust comparisons."""
+    if not v:
+        return (0,)
+    parts = re.findall(r'\d+', str(v))
+    return tuple(int(p) for p in parts) if parts else (0,)
 
 
 class VersionStatus:
@@ -213,7 +222,7 @@ class VersionChecker:
         # Check if remote version is known from cached check
         if self._cached_remote_result:
             rem_ver = self._cached_remote_result.get("remote_manifest_version")
-            if rem_ver and rem_ver > repo_version:
+            if rem_ver and parse_version_tuple(rem_ver) > parse_version_tuple(repo_version):
                 repo_version = rem_ver
 
         if not target_manifest or not target_manifest.exists():
@@ -240,7 +249,7 @@ class VersionChecker:
                     "missing_files": missing
                 }
 
-            is_up = (installed_ver == repo_version)
+            is_up = (parse_version_tuple(installed_ver) == parse_version_tuple(repo_version))
             return {
                 "status": VersionStatus.UP_TO_DATE if is_up else VersionStatus.UPDATE_AVAILABLE,
                 "version": installed_ver if is_up else f"{installed_ver} → {repo_version}",
@@ -285,7 +294,9 @@ class VersionChecker:
                 }
 
             # 3. Version mismatch between saved config and latest manifest -> Update Available
-            if saved_version and saved_version != manifest_version:
+            saved_tuple = parse_version_tuple(saved_version)
+            manifest_tuple = parse_version_tuple(manifest_version)
+            if saved_version and saved_tuple != manifest_tuple:
                 return {
                     "status": VersionStatus.UPDATE_AVAILABLE,
                     "version": f"{saved_version} → {manifest_version}",
@@ -300,7 +311,7 @@ class VersionChecker:
             # 4. Check if remote launcher executable version is newer
             if self._cached_remote_result:
                 rem_launcher_v = self._cached_remote_result.get("remote_launcher_version", "")
-                if rem_launcher_v and rem_launcher_v > CURRENT_LAUNCHER_VERSION:
+                if rem_launcher_v and parse_version_tuple(rem_launcher_v) > parse_version_tuple(CURRENT_LAUNCHER_VERSION):
                     return {
                         "status": VersionStatus.UPDATE_AVAILABLE,
                         "version": f"{CURRENT_LAUNCHER_VERSION} → {rem_launcher_v}",

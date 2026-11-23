@@ -33,7 +33,7 @@ class ManifestParser:
 
     @property
     def version(self) -> str:
-        return self.data.get("project", {}).get("version", "1.1.3")
+        return self.data.get("project", {}).get("version", "1.1.4")
 
     @property
     def launcher_version(self) -> str:
@@ -58,6 +58,39 @@ class ManifestParser:
             return h.hexdigest().lower()
         except Exception:
             return ""
+
+    @staticmethod
+    def compute_normalized_text_sha256(file_path: Path) -> Tuple[str, str]:
+        """
+        Calculate SHA-256 hash with normalized LF line endings and CRLF line endings.
+        Returns (lf_hash, crlf_hash).
+        """
+        try:
+            with open(file_path, "rb") as f:
+                content = f.read()
+            lf = content.replace(b"\r\n", b"\n")
+            crlf = lf.replace(b"\n", b"\r\n")
+            return (
+                hashlib.sha256(lf).hexdigest().lower(),
+                hashlib.sha256(crlf).hexdigest().lower()
+            )
+        except Exception:
+            return ("", "")
+
+    def is_hash_match(self, file_path: Path, expected_hash: str) -> bool:
+        """Verify whether file matches expected SHA-256 hash, tolerating CRLF/LF on text files."""
+        if not file_path or not file_path.exists() or not expected_hash:
+            return False
+        expected = expected_hash.strip().lower()
+        actual = self.compute_sha256(file_path)
+        if actual == expected:
+            return True
+        # For text files, check if git line-ending conversion (CRLF vs LF) caused the difference
+        if file_path.suffix.lower() in ('.bat', '.cmd', '.json', '.txt', '.ps1', '.sh', '.ini', '.cfg', '.xml'):
+            lf_h, crlf_h = self.compute_normalized_text_sha256(file_path)
+            if expected in (lf_h, crlf_h):
+                return True
+        return False
 
     def get_install_steps(self, repo_root: Path) -> List[Dict[str, Any]]:
         raw_steps = self.data.get("install_steps", [])
@@ -119,7 +152,7 @@ class ManifestParser:
 
             # Check alternative locations (e.g. game_dir vs launcher_dir for bat files)
             alt_resolved = None
-            if not resolved.exists() and "LAUNCHER_DIR" in self.context and "GAME_DIR" in self.context:
+            if "LAUNCHER_DIR" in self.context and "GAME_DIR" in self.context:
                 game_dir = Path(self.context["GAME_DIR"])
                 launcher_dir = Path(self.context["LAUNCHER_DIR"])
                 if resolved.parent == launcher_dir:
@@ -131,13 +164,18 @@ class ManifestParser:
                     if candidate.exists():
                         alt_resolved = candidate
 
-            target_path = alt_resolved if (alt_resolved and alt_resolved.exists()) else resolved
+            # Prefer resolved if it exists and matches; else fallback to alt_resolved
+            target_path = resolved
+            if expected_hash:
+                if not self.is_hash_match(target_path, expected_hash) and alt_resolved and self.is_hash_match(alt_resolved, expected_hash):
+                    target_path = alt_resolved
+            elif not target_path.exists() and alt_resolved and alt_resolved.exists():
+                target_path = alt_resolved
 
             if not target_path.exists():
                 missing.append(f"{name} ({target_path})")
             elif expected_hash:
-                actual_hash = self.compute_sha256(target_path)
-                if actual_hash != expected_hash:
+                if not self.is_hash_match(target_path, expected_hash):
                     outdated.append(f"{name} [SHA-256 mismatch]")
 
         is_valid = (len(missing) == 0 and len(outdated) == 0)

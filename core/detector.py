@@ -135,10 +135,15 @@ class SystemDetector:
         from core.version_checker import VersionChecker, VersionStatus
         vc = VersionChecker(self.config)
         ver_info = vc.check_status(lang)
-        repo_v = ver_info.get("repo_version", "1.1.3")
+        repo_v = ver_info.get("repo_version", "1.1.4")
         inst_v = ver_info.get("installed_version") or self.config.get("installed_version", "")
         ver_status = ver_info.get("status")
         v_ok = (ver_status == VersionStatus.UP_TO_DATE)
+
+        mismatch_msg = t("chk_version_mismatch", lang, installed=inst_v or "—", repo=repo_v)
+        missing_files = ver_info.get("missing_files", [])
+        if missing_files and not v_ok:
+            mismatch_msg = f"{mismatch_msg} ({', '.join(missing_files[:2])})"
 
         checks.append({
             "id": "version_match",
@@ -148,7 +153,7 @@ class SystemDetector:
             "details": (
                 t("chk_version_synced", lang, version=repo_v)
                 if v_ok else
-                t("chk_version_mismatch", lang, installed=inst_v or "—", repo=repo_v)
+                mismatch_msg
             )
         })
 
