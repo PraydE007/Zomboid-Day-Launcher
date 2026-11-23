@@ -16,8 +16,9 @@ from PyQt6.QtGui import QIcon, QPixmap, QPainterPath, QRegion
 
 from core.config import ConfigManager
 from core.process_manager import (
-    ProcessManager, ModGuardScanThread, determine_modguard_scan_profile
+    ProcessManager, ModGuardScanThread, determine_modguard_scan_profile, compute_modguard_fingerprint
 )
+from core.version_checker import RemoteUpdateCheckThread
 from core.installer import InstallWorker
 from core.utils import get_resource_path, get_app_dir
 from core.i18n import t
@@ -171,6 +172,12 @@ class MainWindow(QMainWindow):
         self.tab_settings.sig_hero_image_changed.connect(self.tab_home.hero.set_image)
         self.proc_mgr.sig_game_crashed.connect(self._on_game_crashed)
         self.proc_mgr.sig_process_stopped.connect(lambda pid: self.tab_home.refresh_status())
+
+        # Background remote update check (checks GitHub releases and remote manifest silently)
+        if self.config.get("auto_check_updates", True):
+            self.update_checker_worker = RemoteUpdateCheckThread(self.tab_home.version_checker, parent=self)
+            self.update_checker_worker.sig_update_checked.connect(lambda info: self.tab_home.refresh_status())
+            self.update_checker_worker.start()
 
     def _on_tab_changed(self, tab_id: int):
         self.hotbar.set_current_tab(tab_id)
@@ -386,22 +393,23 @@ class MainWindow(QMainWindow):
             dlg.exec()
             return
 
-        # Scan clean: if Profile 2 was executed, remember successful full scan
-        if profile_id == 2:
-            self.config.set("modguard_full_scan_done", True)
-            self.config.set("modguard_last_full_scan_time", time.time())
-            game_dir = Path(self.config.game_dir)
-            engine_mtime = 0.0
-            for ef in ["projectzomboid.jar", "ProjectZomboid64.exe", "ProjectZomboid64.json"]:
-                p = game_dir / ef
-                if p.exists():
-                    try:
-                        m = p.stat().st_mtime
-                        if m > engine_mtime:
-                            engine_mtime = m
-                    except Exception:
-                        pass
-            self.config.set("modguard_last_engine_mtime", engine_mtime)
+        # Scan clean: remember successful scan state and current file/mod fingerprint
+        current_fp = compute_modguard_fingerprint(self.config)
+        self.config.set("modguard_full_scan_done", True)
+        self.config.set("modguard_last_full_scan_time", time.time())
+        self.config.set("modguard_last_fingerprint", current_fp)
+        game_dir = Path(self.config.game_dir)
+        engine_mtime = 0.0
+        for ef in ["projectzomboid.jar", "ProjectZomboid64.exe", "ProjectZomboid64.json"]:
+            p = game_dir / ef
+            if p.exists():
+                try:
+                    m = p.stat().st_mtime
+                    if m > engine_mtime:
+                        engine_mtime = m
+                except Exception:
+                    pass
+        self.config.set("modguard_last_engine_mtime", engine_mtime)
 
         self.tab_home.set_launch_spinner_text(t("launching_game", lang), "")
         QApplication.processEvents()

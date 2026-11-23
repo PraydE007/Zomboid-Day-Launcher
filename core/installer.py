@@ -81,7 +81,7 @@ class InstallWorker(QThread):
 
             self.sig_progress.emit(5, "Синхронізація репозиторіїв...")
             all_steps = []
-            detected_version = "1.0.4"
+            detected_version = "1.1.0"
 
             # Step 1: Sync all repositories in order
             for i, repo_info in enumerate(enabled_repos, start=1):
@@ -194,6 +194,49 @@ class InstallWorker(QThread):
                     destination_path.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(source, destination_path)
                     self.sig_log.emit(f"    Встановлено: {source.name} -> {destination_path}")
+
+            # Step 4: Check if launcher executable has a newer release on GitHub
+            try:
+                import urllib.request
+                import json
+                self.sig_progress.emit(96, "Перевірка оновлень самого лаунчера...")
+                req = urllib.request.Request(
+                    "https://api.github.com/repos/PraydE007/Zomboid-Day-Launcher/releases/latest",
+                    headers={"User-Agent": "Zomboid-Day-Launcher"}
+                )
+                with urllib.request.urlopen(req, timeout=4.0) as resp:
+                    rel_data = json.loads(resp.read().decode("utf-8"))
+                    rel_tag = str(rel_data.get("tag_name", "")).lstrip("v")
+                    cur_v = "1.1.0"
+                    if rel_tag and rel_tag > cur_v:
+                        self.sig_log.emit(f"🚀 Знайдено новіший реліз лаунчера: v{rel_tag} (поточна версія: v{cur_v})")
+                        download_url = None
+                        for asset in rel_data.get("assets", []):
+                            if asset.get("name") == "Zomboid-Day-Launcher.exe":
+                                download_url = asset.get("browser_download_url")
+                                break
+                        if download_url:
+                            self.sig_log.emit("  → Завантаження оновленого виконуваного файлу...")
+                            app_dir = get_app_dir()
+                            cur_exe = app_dir / "Zomboid-Day-Launcher.exe"
+                            new_exe = app_dir / "Zomboid-Day-Launcher.exe.new"
+                            old_exe = app_dir / "Zomboid-Day-Launcher.exe.old"
+                            urllib.request.urlretrieve(download_url, str(new_exe))
+                            if new_exe.exists() and new_exe.stat().st_size > 100000:
+                                if old_exe.exists():
+                                    try:
+                                        old_exe.unlink()
+                                    except Exception:
+                                        pass
+                                if cur_exe.exists():
+                                    try:
+                                        cur_exe.rename(old_exe)
+                                    except Exception:
+                                        pass
+                                new_exe.rename(cur_exe)
+                                self.sig_log.emit(f"  ✅ Лаунчер успішно оновлено до версії v{rel_tag}!")
+            except Exception as e:
+                self.sig_log.emit(f"  [Попередження перевірки релізу лаунчера]: {e}")
 
             # Save version and timestamp
             self.config.set("installed_version", detected_version)

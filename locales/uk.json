@@ -188,5 +188,9 @@
   "log_launch_error": "[Помилка запуску гри]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: Запуск перевірки безпеки модів перед стартом гри...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Перевірку безпеки модів успішно завершено.",
-  "log_modguard_warn": "[PZ-ModGuard попередження]: {error}"
+  "log_modguard_warn": "[PZ-ModGuard попередження]: {error}",
+  "btn_update": "ОНОВИТИ",
+  "btn_release_link": "Останній реліз",
+  "tip_click_update": "Натисніть для завантаження та встановлення оновлення",
+  "err_update_required_tooltip": "Запуск заблоковано: потрібне оновлення"
 }

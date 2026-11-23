@@ -188,5 +188,9 @@
   "log_launch_error": "[Fehler beim Spielstart]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: Führe Mod-Sicherheitsüberprüfung vor Spielstart durch...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Mod-Sicherheitsüberprüfung erfolgreich abgeschlossen.",
-  "log_modguard_warn": "[PZ-ModGuard Warnung]: {error}"
+  "log_modguard_warn": "[PZ-ModGuard Warnung]: {error}",
+  "btn_update": "AKTUALISIEREN",
+  "btn_release_link": "Neuestes Release",
+  "tip_click_update": "Klicken, um das Update herunterzuladen und zu installieren",
+  "err_update_required_tooltip": "Start gesperrt: Update erforderlich"
 }

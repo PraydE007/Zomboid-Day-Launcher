@@ -188,5 +188,9 @@
   "log_launch_error": "[ゲーム起動エラー]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: ゲーム起動前のModセキュリティチェックを実行中...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Modセキュリティスキャンが正常に完了しました。",
-  "log_modguard_warn": "[PZ-ModGuard 警告]: {error}"
+  "log_modguard_warn": "[PZ-ModGuard 警告]: {error}",
+  "btn_update": "更新",
+  "btn_release_link": "最新リリース",
+  "tip_click_update": "更新をダウンロードしてインストールするにはクリック",
+  "err_update_required_tooltip": "起動無効: 先にアップデートが必要です"
 }

@@ -153,6 +153,67 @@ class LogWatcherThread(QThread):
             self.sig_new_line.emit(f"[LogWatcher помилка]: {e}")
 
 
+def compute_modguard_fingerprint(config) -> str:
+    """
+    Computes a fast SHA-256 fingerprint of game engine files, launch scripts,
+    and user mods to reliably detect changes and avoid redundant full scans.
+    """
+    import hashlib
+    game_dir = Path(config.game_dir)
+    user_dir = Path(config.user_zomboid_dir)
+    user_mods = user_dir / "mods"
+
+    hasher = hashlib.sha256()
+
+    # 1. Critical game executables and scripts
+    engine_files = [
+        "projectzomboid.jar",
+        "ProjectZomboid64.exe",
+        "ProjectZomboid64.json",
+        "ProjectZomboid64.bat",
+        "ProjectZomboid64ShowConsole.bat",
+        "ZombieBuddy.jar",
+        "zbNative.dll",
+        "PZ-ModGuard.bat"
+    ]
+    for ef in engine_files:
+        p = game_dir / ef
+        if p.exists():
+            try:
+                st = p.stat()
+                hasher.update(f"{ef}:{st.st_size}:{st.st_mtime}".encode("utf-8"))
+            except Exception:
+                pass
+
+    # Also check base_dir launch scripts if different from game_dir
+    base_dir = Path(config.base_dir)
+    if base_dir != game_dir:
+        for ef in ["ProjectZomboid64.bat", "ProjectZomboid64ShowConsole.bat"]:
+            p = base_dir / ef
+            if p.exists():
+                try:
+                    st = p.stat()
+                    hasher.update(f"launcher_{ef}:{st.st_size}:{st.st_mtime}".encode("utf-8"))
+                except Exception:
+                    pass
+
+    # 2. User mods directory
+    if user_mods.exists() and user_mods.is_dir():
+        try:
+            for item in sorted(user_mods.rglob("*")):
+                if item.is_file():
+                    try:
+                        st = item.stat()
+                        rel = str(item.relative_to(user_mods))
+                        hasher.update(f"{rel}:{st.st_size}:{st.st_mtime}".encode("utf-8"))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    return hasher.hexdigest()
+
+
 def determine_modguard_scan_profile(config) -> Tuple[int, str, str]:
     """
     Decide whether to run Profile 2 (Full Deep Scan) or Profile 1 (Quick Scan).
@@ -160,37 +221,19 @@ def determine_modguard_scan_profile(config) -> Tuple[int, str, str]:
 
     Profile 2 (Full Deep Scan):
       1. First scan ever (config "modguard_full_scan_done" is False).
-      2. Base game engine was updated (projectzomboid.jar or ProjectZomboid64.exe mtime changed).
-      3. Periodic audit (7+ days since last full scan).
+      2. Files, mods, or engine binaries have changed since last scan.
 
     Profile 1 (Quick Scan, ~1.5s):
-      - Routine launches when no engine changes and recent full scan exists.
+      - Routine launches when no changes detected and a previous full scan exists.
     """
-    game_dir = Path(config.game_dir)
     full_done = config.get("modguard_full_scan_done", False)
     if not full_done:
         return 2, "scan_profile_full", "scan_reason_first"
 
-    # Check 7-day periodic audit
-    last_full_ts = float(config.get("modguard_last_full_scan_time", 0.0))
-    now = time.time()
-    if now - last_full_ts > (7 * 86400):
-        return 2, "scan_profile_full", "scan_reason_periodic"
+    current_fingerprint = compute_modguard_fingerprint(config)
+    last_fingerprint = str(config.get("modguard_last_fingerprint", ""))
 
-    # Check engine file modification times
-    current_engine_mtime = 0.0
-    for engine_file in ["projectzomboid.jar", "ProjectZomboid64.exe", "ProjectZomboid64.json"]:
-        p = game_dir / engine_file
-        if p.exists():
-            try:
-                m = p.stat().st_mtime
-                if m > current_engine_mtime:
-                    current_engine_mtime = m
-            except Exception:
-                pass
-
-    last_engine_mtime = float(config.get("modguard_last_engine_mtime", 0.0))
-    if current_engine_mtime > 0 and current_engine_mtime > last_engine_mtime:
+    if not last_fingerprint or current_fingerprint != last_fingerprint:
         return 2, "scan_profile_full", "scan_reason_updated"
 
     # Routine quick scan

@@ -188,5 +188,9 @@
   "log_launch_error": "[Game launch error]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: Running mod security check before starting the game...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Mod security scan completed successfully.",
-  "log_modguard_warn": "[PZ-ModGuard warning]: {error}"
+  "log_modguard_warn": "[PZ-ModGuard warning]: {error}",
+  "btn_update": "UPDATE",
+  "btn_release_link": "Latest Release",
+  "tip_click_update": "Click to download and install update",
+  "err_update_required_tooltip": "Launch disabled: update required before launching"
 }

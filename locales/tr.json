@@ -188,5 +188,9 @@
   "log_launch_error": "[Oyun başlatma hatası]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: Oyuna başlamadan önce mod güvenlik kontrolü yapılıyor...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Mod güvenlik taraması başarıyla tamamlandı.",
-  "log_modguard_warn": "[PZ-ModGuard uyarısı]: {error}"
+  "log_modguard_warn": "[PZ-ModGuard uyarısı]: {error}",
+  "btn_update": "GÜNCELLE",
+  "btn_release_link": "Son Sürüm",
+  "tip_click_update": "Güncellemeyi indirmek ve yüklemek için tıklayın",
+  "err_update_required_tooltip": "Başlatma engellendi: güncelleme gerekli"
 }

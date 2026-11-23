@@ -188,5 +188,9 @@
   "log_launch_error": "[游戏启动错误]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: 游戏启动前正在进行模组安全检查...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: 模组安全扫描成功完成。",
-  "log_modguard_warn": "[PZ-ModGuard 警告]: {error}"
+  "log_modguard_warn": "[PZ-ModGuard 警告]: {error}",
+  "btn_update": "更新",
+  "btn_release_link": "最新发布",
+  "tip_click_update": "点击下载并安装更新",
+  "err_update_required_tooltip": "启动已禁用：需要先更新"
 }

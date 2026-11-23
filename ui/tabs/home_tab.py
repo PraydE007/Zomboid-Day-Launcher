@@ -254,6 +254,28 @@ QPushButton#btn_start:pressed {
 }
 """
 
+STYLE_PLAY_UPDATE = """
+QPushButton#btn_start {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f59e0b, stop:1 #d97706);
+    color: #ffffff;
+    border: 1px solid #b45309;
+    border-radius: 6px;
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    padding: 12px 30px;
+    text-align: center;
+}
+QPushButton#btn_start:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #fbbf24, stop:1 #f59e0b);
+    border-color: #fbbf24;
+}
+QPushButton#btn_start:pressed {
+    background: #b45309;
+}
+"""
+
 STYLE_DEBUG_BTN = """
 QPushButton#btn_debug_start {
     background-color: rgba(30, 30, 30, 0.90);
@@ -399,6 +421,33 @@ class HomeTab(QWidget):
         """)
         self.btn_diag.clicked.connect(self._open_diagnostics)
         badge_row.addWidget(self.btn_diag)
+
+        # Quick Link to Latest GitHub Release
+        self.btn_release = QPushButton(f"🚀 {t('btn_release_link', lang)}", self.hero)
+        self.btn_release.setObjectName("btn_release")
+        self.btn_release.setFixedHeight(24)
+        self.btn_release.setStyleSheet("""
+            QPushButton#btn_release {
+                background-color: #141414;
+                color: #e4e4e7;
+                border: 1px solid #383838;
+                border-radius: 12px;
+                padding: 2px 14px;
+                font-family: 'Segoe UI', -apple-system, sans-serif;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            QPushButton#btn_release:hover {
+                background-color: #262626;
+                color: #38bdf8;
+                border-color: #0284c7;
+            }
+            QPushButton#btn_release:pressed {
+                background-color: #0d0d0d;
+            }
+        """)
+        self.btn_release.clicked.connect(self._open_latest_release)
+        badge_row.addWidget(self.btn_release)
 
         badge_row.addStretch()
         overlay.addLayout(badge_row)
@@ -558,6 +607,11 @@ class HomeTab(QWidget):
         dlg.exec()
         self.refresh_status()
 
+    def _open_latest_release(self):
+        from PyQt6.QtGui import QDesktopServices
+        from PyQt6.QtCore import QUrl
+        QDesktopServices.openUrl(QUrl("https://github.com/PraydE007/Zomboid-Day-Launcher/releases/latest"))
+
     def retranslate_ui(self):
         lang = self.config.language
         self.lbl_subtitle.setText(t("subtitle", lang))
@@ -571,6 +625,8 @@ class HomeTab(QWidget):
         self.btn_debug_start.setText(t("btn_debug", lang))
         self.btn_refresh.setToolTip(t("btn_refresh_tooltip", lang))
         self.btn_diag.setText(f"🔍 {t('view_diagnostics', lang)}")
+        if hasattr(self, "btn_release"):
+            self.btn_release.setText(f"🚀 {t('btn_release_link', lang)}")
         self.banner_loc.setText(t("banner_launcher_not_in_game", lang))
         self.refresh_status()
 
@@ -621,7 +677,7 @@ class HomeTab(QWidget):
             }}
         """)
 
-        # 3. Main Action Button: Green PLAY if ready, Red FIX if not ready
+        # 3. Main Action Button: Green PLAY if ready, Amber UPDATE if update available, Red FIX if not ready
         self.can_play = is_installed and (not is_invalid_placement) and (not is_update)
 
         if self.can_play:
@@ -631,14 +687,19 @@ class HomeTab(QWidget):
             self.btn_start.setToolTip("")
             self.btn_debug_start.setEnabled(True)
             self.btn_debug_start.setToolTip("")
+        elif is_update:
+            self.btn_start.setText(t("btn_update", lang))
+            self.btn_start.setStyleSheet(STYLE_PLAY_UPDATE)
+            self.btn_start.setProperty("status", "update")
+            self.btn_start.setToolTip(f"{t('status_update_available', lang)} • {t('tip_click_update', lang)}")
+            self.btn_debug_start.setEnabled(False)
+            self.btn_debug_start.setToolTip(t("err_update_required_tooltip", lang))
         else:
             self.btn_start.setText(t("btn_fix", lang))
             self.btn_start.setStyleSheet(STYLE_PLAY_FIX)
             self.btn_start.setProperty("status", "fix")
             if is_invalid_placement:
                 self.btn_start.setToolTip(t("banner_launcher_not_in_game", lang))
-            elif is_update:
-                self.btn_start.setToolTip(f"{t('status_update_available', lang)} • {t('tip_click_fix_to_update', lang)}")
             else:
                 self.btn_start.setToolTip(t("btn_install", lang))
             self.btn_debug_start.setEnabled(False)

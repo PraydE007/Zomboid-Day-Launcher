@@ -1,5 +1,6 @@
 import json
 import os
+import hashlib
 from pathlib import Path
 from typing import Dict, Any, List, Tuple, Optional
 
@@ -19,7 +20,7 @@ class ManifestParser:
             self.data = json.load(f)
 
     def resolve_variables(self, text: str) -> str:
-        """Replace placeholders like {GAME_DIR}, {USER_ZOMBOID_DIR}, {MODS_DIR}."""
+        """Replace placeholders like {GAME_DIR}, {USER_ZOMBOID_DIR}, {MODS_DIR}, {LAUNCHER_DIR}."""
         result = text
         for k, v in self.context.items():
             result = result.replace(f"{{{k}}}", v)
@@ -32,7 +33,11 @@ class ManifestParser:
 
     @property
     def version(self) -> str:
-        return self.data.get("project", {}).get("version", "1.0.4")
+        return self.data.get("project", {}).get("version", "1.1.0")
+
+    @property
+    def launcher_version(self) -> str:
+        return self.data.get("project", {}).get("launcher_version", self.version)
 
     @property
     def description(self) -> str:
@@ -41,6 +46,18 @@ class ManifestParser:
     @property
     def author(self) -> str:
         return self.data.get("project", {}).get("author", "")
+
+    @staticmethod
+    def compute_sha256(file_path: Path) -> str:
+        """Calculate SHA-256 hex digest of a file in streaming chunks."""
+        try:
+            h = hashlib.sha256()
+            with open(file_path, "rb") as f:
+                while chunk := f.read(65536):
+                    h.update(chunk)
+            return h.hexdigest().lower()
+        except Exception:
+            return ""
 
     def get_install_steps(self, repo_root: Path) -> List[Dict[str, Any]]:
         raw_steps = self.data.get("install_steps", [])
@@ -72,25 +89,59 @@ class ManifestParser:
 
         return resolved_steps
 
-    def validate_installation(self) -> Tuple[bool, List[str]]:
+    def validate_installation(self) -> Tuple[bool, List[str], List[str]]:
         """
-        Check if all required files specified in validation.required_files exist.
-        Returns (is_valid, list_of_missing_files).
+        Check if all required files specified in validation.required_files exist
+        and verify their cryptographic SHA-256 hashes.
+        Returns:
+            (is_valid, missing_files, outdated_or_corrupt_files)
         """
         validation_cfg = self.data.get("validation", {})
         required = validation_cfg.get("required_files", [])
-        
-        # Support both simple list of paths or list of objects
-        missing = []
+
+        missing: List[str] = []
+        outdated: List[str] = []
+
         for item in required:
-            raw_path = item if isinstance(item, str) else item.get("path", "")
+            if isinstance(item, str):
+                raw_path = item
+                expected_hash = ""
+                name = Path(item).name
+            else:
+                raw_path = item.get("path", "")
+                expected_hash = str(item.get("sha256", "")).strip().lower()
+                name = item.get("name", Path(raw_path).name)
+
             if not raw_path:
                 continue
-            resolved = Path(self.resolve_variables(raw_path))
-            if not resolved.exists():
-                missing.append(str(resolved))
 
-        return len(missing) == 0, missing
+            resolved = Path(self.resolve_variables(raw_path))
+
+            # Check alternative locations (e.g. game_dir vs launcher_dir for bat files)
+            alt_resolved = None
+            if not resolved.exists() and "LAUNCHER_DIR" in self.context and "GAME_DIR" in self.context:
+                game_dir = Path(self.context["GAME_DIR"])
+                launcher_dir = Path(self.context["LAUNCHER_DIR"])
+                if resolved.parent == launcher_dir:
+                    candidate = game_dir / resolved.name
+                    if candidate.exists():
+                        alt_resolved = candidate
+                elif resolved.parent == game_dir:
+                    candidate = launcher_dir / resolved.name
+                    if candidate.exists():
+                        alt_resolved = candidate
+
+            target_path = alt_resolved if (alt_resolved and alt_resolved.exists()) else resolved
+
+            if not target_path.exists():
+                missing.append(f"{name} ({target_path})")
+            elif expected_hash:
+                actual_hash = self.compute_sha256(target_path)
+                if actual_hash != expected_hash:
+                    outdated.append(f"{name} [SHA-256 mismatch]")
+
+        is_valid = (len(missing) == 0 and len(outdated) == 0)
+        return is_valid, missing, outdated
 
     def get_launch_executables(self) -> Dict[str, str]:
         launch_cfg = self.data.get("launch", {})

@@ -188,5 +188,9 @@
   "log_launch_error": "[خطأ في تشغيل اللعبة]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: جارٍ فحص أمان التعديلات قبل بدء اللعبة...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: اكتمل فحص أمان التعديلات بنجاح.",
-  "log_modguard_warn": "[تحذير PZ-ModGuard]: {error}"
+  "log_modguard_warn": "[تحذير PZ-ModGuard]: {error}",
+  "btn_update": "تحديث",
+  "btn_release_link": "أحدث إصدار",
+  "tip_click_update": "انقر لتنزيل التحديث وتثبيته",
+  "err_update_required_tooltip": "تم تعطيل البدء: يلزم التحديث أولاً"
 }

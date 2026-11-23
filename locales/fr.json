@@ -188,5 +188,9 @@
   "log_launch_error": "[Erreur de lancement du jeu] : {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard] : Vérification de la sécurité des mods avant le lancement...",
   "log_modguard_done": "🛡️ [PZ-ModGuard] : Analyse de sécurité des mods terminée avec succès.",
-  "log_modguard_warn": "[Avertissement PZ-ModGuard] : {error}"
+  "log_modguard_warn": "[Avertissement PZ-ModGuard] : {error}",
+  "btn_update": "METTRE À JOUR",
+  "btn_release_link": "Dernière version",
+  "tip_click_update": "Cliquez pour télécharger et installer la mise à jour",
+  "err_update_required_tooltip": "Lancement bloqué : mise à jour requise"
 }

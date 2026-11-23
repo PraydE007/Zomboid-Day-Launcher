@@ -188,5 +188,9 @@
   "log_launch_error": "[Chyba spuštění hry]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: Kontrola bezpečnosti modů před spuštěním hry...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Bezpečnostní kontrola modů úspěšně dokončena.",
-  "log_modguard_warn": "[Varování PZ-ModGuard]: {error}"
+  "log_modguard_warn": "[Varování PZ-ModGuard]: {error}",
+  "btn_update": "AKTUALIZOVAT",
+  "btn_release_link": "Nejnovější verze",
+  "tip_click_update": "Kliknutím stáhněte a nainstalujte aktualizaci",
+  "err_update_required_tooltip": "Spuštění zablokováno: je vyžadována aktualizace"
 }

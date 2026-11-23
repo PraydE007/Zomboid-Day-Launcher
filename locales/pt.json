@@ -188,5 +188,9 @@
   "log_launch_error": "[Erro ao iniciar o jogo]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: Verificando a segurança dos mods antes de iniciar...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Verificação de segurança de mods concluída com sucesso.",
-  "log_modguard_warn": "[Aviso do PZ-ModGuard]: {error}"
+  "log_modguard_warn": "[Aviso do PZ-ModGuard]: {error}",
+  "btn_update": "ATUALIZAR",
+  "btn_release_link": "Última versão",
+  "tip_click_update": "Clique para baixar e instalar a atualização",
+  "err_update_required_tooltip": "Inicialização bloqueada: atualização necessária"
 }

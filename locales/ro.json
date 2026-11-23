@@ -188,5 +188,9 @@
   "log_launch_error": "[Eroare la lansarea jocului]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: Se verifică securitatea modurilor înainte de start...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Verificarea de securitate a modurilor a fost finalizată cu succes.",
-  "log_modguard_warn": "[Avertisment PZ-ModGuard]: {error}"
+  "log_modguard_warn": "[Avertisment PZ-ModGuard]: {error}",
+  "btn_update": "ACTUALIZEAZĂ",
+  "btn_release_link": "Cea mai recentă versiune",
+  "tip_click_update": "Faceți clic pentru a descărca și instala actualizarea",
+  "err_update_required_tooltip": "Pornire blocată: este necesară actualizarea"
 }

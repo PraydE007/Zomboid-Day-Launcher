@@ -188,5 +188,9 @@
   "log_launch_error": "[게임 실행 오류]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: 게임 시작 전 모드 보안 검사 실행 중...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: 모드 보안 검사가 성공적으로 완료되었습니다.",
-  "log_modguard_warn": "[PZ-ModGuard 경고]: {error}"
+  "log_modguard_warn": "[PZ-ModGuard 경고]: {error}",
+  "btn_update": "업데이트",
+  "btn_release_link": "최신 릴리스",
+  "tip_click_update": "업데이트를 다운로드하고 설치하려면 클릭",
+  "err_update_required_tooltip": "실행 비활성화됨: 업데이트 필요"
 }

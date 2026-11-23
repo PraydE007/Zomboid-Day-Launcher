@@ -188,5 +188,9 @@
   "log_launch_error": "[Játékindítási hiba]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: Mod-biztonsági ellenőrzés futtatása a játék előtt...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Mod-biztonsági ellenőrzés sikeresen befejeződött.",
-  "log_modguard_warn": "[PZ-ModGuard figyelmeztetés]: {error}"
+  "log_modguard_warn": "[PZ-ModGuard figyelmeztetés]: {error}",
+  "btn_update": "FRISSÍTÉS",
+  "btn_release_link": "Legújabb kiadás",
+  "tip_click_update": "Kattintson a frissítés letöltéséhez és telepítéséhez",
+  "err_update_required_tooltip": "Indítás letiltva: frissítés szükséges"
 }

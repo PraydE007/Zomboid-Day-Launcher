@@ -188,5 +188,9 @@
   "log_launch_error": "[Errore di avvio del gioco]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: Controllo di sicurezza delle mod prima dell'avvio...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Scansione di sicurezza delle mod completata con successo.",
-  "log_modguard_warn": "[Avviso PZ-ModGuard]: {error}"
+  "log_modguard_warn": "[Avviso PZ-ModGuard]: {error}",
+  "btn_update": "AGGIORNA",
+  "btn_release_link": "Ultima versione",
+  "tip_click_update": "Fai clic per scaricare e installare l'aggiornamento",
+  "err_update_required_tooltip": "Avvio disabilitato: aggiornamento richiesto"
 }

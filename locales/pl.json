@@ -188,5 +188,9 @@
   "log_launch_error": "[Błąd uruchamiania gry]: {error}",
   "log_modguard_start": "🛡️ [PZ-ModGuard]: Uruchamianie sprawdzania bezpieczeństwa modów przed startem gry...",
   "log_modguard_done": "🛡️ [PZ-ModGuard]: Skanowanie bezpieczeństwa modów zakończone pomyślnie.",
-  "log_modguard_warn": "[Ostrzeżenie PZ-ModGuard]: {error}"
+  "log_modguard_warn": "[Ostrzeżenie PZ-ModGuard]: {error}",
+  "btn_update": "AKTUALIZUJ",
+  "btn_release_link": "Najnowsze wydanie",
+  "tip_click_update": "Kliknij, aby pobrać i zainstalować aktualizację",
+  "err_update_required_tooltip": "Uruchomienie zablokowane: wymagana aktualizacja"
 }
