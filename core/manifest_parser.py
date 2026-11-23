@@ -32,7 +32,7 @@ class ManifestParser:
 
     @property
     def version(self) -> str:
-        return self.data.get("project", {}).get("version", "1.0.3")
+        return self.data.get("project", {}).get("version", "1.0.4")
 
     @property
     def description(self) -> str:
