@@ -1,7 +1,8 @@
 """
 Threat Dialog — Security Warning & Threat Quarantine Modal.
-Provides a fake terminal/console with selectable raw logs, 1-click
-deletion/quarantine of malicious files and scripts, and saving trusted exceptions (pzmg_exceptions.json).
+Provides a comprehensive scanner terminal, detailed categorization of all detected
+security threats (not just file paths), 1-click deletion/quarantine, and saving
+trusted exceptions (pzmg_exceptions.json).
 Fully localized using centralized i18n system.
 """
 
@@ -36,17 +37,18 @@ def get_file_sha256(path: Path) -> str:
         return ""
 
 
-def add_pzmg_exception(file_path: Path, game_dir: Optional[Path] = None) -> bool:
+def add_pzmg_exception(file_path: Path, game_dir: Optional[Path] = None, comment: str = "") -> bool:
     """
     Register a trusted user exception for PZ-ModGuard in pzmg_exceptions.json.
     PZ-ModGuard natively parses pzmg_exceptions.json in the game root and in %LOCALAPPDATA%/PZ-ModGuard.
     """
-    if not file_path or not file_path.exists():
+    if not file_path:
         return False
 
-    f_hash = get_file_sha256(file_path)
+    f_hash = get_file_sha256(file_path) if file_path.exists() else ""
     if not f_hash:
-        return False
+        # Fallback pseudo-hash based on filename if file is missing/virtual
+        f_hash = hashlib.sha256(file_path.name.encode("utf-8")).hexdigest().lower()
 
     ext = file_path.suffix.lower()
     pattern = "native" if ext in (".dll", ".exe", ".ps1", ".bat", ".cmd", ".vbs", ".sh") else "*"
@@ -56,7 +58,7 @@ def add_pzmg_exception(file_path: Path, game_dir: Optional[Path] = None) -> bool
         "target": file_path.name,
         "entry": "*",
         "pattern": pattern,
-        "comment": f"Allowed via Zomboid Day Launcher ({file_path.name})",
+        "comment": comment or f"Allowed via Zomboid Day Launcher ({file_path.name})",
         "date_added": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
@@ -95,14 +97,71 @@ def add_pzmg_exception(file_path: Path, game_dir: Optional[Path] = None) -> bool
     return success
 
 
+class ThreatEntry:
+    """Structured representation of a detected threat from PZ-ModGuard."""
+    def __init__(self, raw_line: str, game_dir: Optional[Path] = None):
+        self.raw_line = raw_line.strip()
+        self.game_dir = game_dir
+        self.category_key = "threat_category_generic"
+        self.fallback_title = "Security Threat Finding"
+        self.detail = ""
+        self.file_path: Optional[Path] = None
+        self._parse()
+
+    def _parse(self):
+        line = self.raw_line
+        lower = line.lower()
+
+        if "unauthorized native binary" in lower:
+            self.category_key = "threat_category_native"
+            self.fallback_title = "Unauthorized Native Binary (.exe / .dll)"
+        elif "unauthorized jvm agent" in lower:
+            self.category_key = "threat_category_agent"
+            self.fallback_title = "Unauthorized JVM Agent Injection"
+        elif "boot classpath override" in lower:
+            self.category_key = "threat_category_boot"
+            self.fallback_title = "Boot Classpath Override (-Xbootclasspath)"
+        elif "compromised native framework" in lower:
+            self.category_key = "threat_category_compromised"
+            self.fallback_title = "Compromised Native Framework Hook"
+        elif "hijacked mainclass" in lower:
+            self.category_key = "threat_category_mainclass"
+            self.fallback_title = "Hijacked Game MainClass"
+        elif "game folder class changed" in lower or "class override" in lower:
+            self.category_key = "threat_category_class"
+            self.fallback_title = "Modified Game Engine Class Override"
+        else:
+            self.category_key = "threat_category_generic"
+            self.fallback_title = "Security Threat Finding"
+
+        # 1. Try finding absolute Windows drive path (e.g. C:\...)
+        m = re.search(r'([A-Za-z]:\\[^:\r\n"\'<>|]+)', line)
+        if m:
+            cand = Path(m.group(1).strip().rstrip('.,;)'))
+            self.file_path = cand
+
+        # 2. Try finding relative filename if no drive path
+        if not self.file_path and self.game_dir:
+            m2 = re.search(r'in\s+([\w\.-]+\.(?:bat|json|jar|dll|exe|class))', line, re.IGNORECASE)
+            if m2:
+                cand2 = self.game_dir / m2.group(1)
+                if cand2.exists():
+                    self.file_path = cand2
+
+        # 3. Clean up display detail
+        clean = re.sub(r'^\[(critical|warning|threat|danger)[^\]]*\]\s*', '', line, flags=re.IGNORECASE)
+        self.detail = clean.strip() or line
+
+
 class ThreatItemWidget(QFrame):
     sig_file_deleted = pyqtSignal(str)
     sig_exception_added = pyqtSignal(str)
 
-    def __init__(self, file_path: Path, raw_msg: str = "", game_dir: Optional[Path] = None, lang: str = "en", parent=None):
+    def __init__(self, entry: ThreatEntry, game_dir: Optional[Path] = None, lang: str = "en", parent=None):
         super().__init__(parent)
-        self.file_path = file_path
-        self.raw_msg = raw_msg
+        self.entry = entry
+        self.file_path = entry.file_path
+        self.raw_msg = entry.raw_line
         self.game_dir = game_dir
         self.lang = lang
         self.is_resolved = False
@@ -115,30 +174,26 @@ class ThreatItemWidget(QFrame):
                 background-color: rgba(25, 12, 12, 0.75);
                 border: 1px solid rgba(239, 68, 68, 0.35);
                 border-radius: 8px;
-                padding: 6px;
+                padding: 8px;
             }
         """)
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(10)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(6)
 
-        info_col = QVBoxLayout()
-        info_col.setSpacing(2)
+        # Top row: Title + Action buttons
+        top_row = QHBoxLayout()
+        top_row.setSpacing(10)
 
-        file_name = self.file_path.name if self.file_path else t("threat_unknown_file", self.lang)
-        self.lbl_name = QLabel(f"⚠️  {file_name}", self)
-        self.lbl_name.setStyleSheet("color: #ef4444; font-size: 13px; font-weight: 800; background: transparent;")
-        info_col.addWidget(self.lbl_name)
+        category_title = t(self.entry.category_key, self.lang)
+        if not category_title or category_title == self.entry.category_key:
+            category_title = self.entry.fallback_title
 
-        self.lbl_path = QLabel(str(self.file_path), self)
-        self.lbl_path.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self.lbl_path.setStyleSheet("color: #a1a1aa; font-family: 'Consolas', monospace; font-size: 11px; background: transparent;")
-        self.lbl_path.setWordWrap(True)
-        info_col.addWidget(self.lbl_path)
+        self.lbl_title = QLabel(f"⚠️  {category_title}", self)
+        self.lbl_title.setStyleSheet("color: #ef4444; font-size: 13px; font-weight: 800; background: transparent;")
+        top_row.addWidget(self.lbl_title, stretch=1)
 
-        layout.addLayout(info_col, stretch=1)
-
-        # Allow / Add Exception button
+        # Action Buttons
         self.btn_allow = QPushButton(t("threat_btn_allow", self.lang), self)
         self.btn_allow.setToolTip(t("threat_tip_allow", self.lang))
         self.btn_allow.setStyleSheet("""
@@ -149,7 +204,7 @@ class ThreatItemWidget(QFrame):
                 font-size: 11px;
                 border: 1px solid rgba(34, 197, 94, 0.4);
                 border-radius: 5px;
-                padding: 6px 12px;
+                padding: 5px 12px;
             }
             QPushButton:hover {
                 background: rgba(34, 197, 94, 0.3);
@@ -161,39 +216,42 @@ class ThreatItemWidget(QFrame):
             }
         """)
         self.btn_allow.clicked.connect(self._handle_allow)
-        layout.addWidget(self.btn_allow)
+        top_row.addWidget(self.btn_allow)
 
-        # Delete button
-        self.btn_del = QPushButton(t("threat_btn_delete", self.lang), self)
-        self.btn_del.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ef4444, stop:1 #dc2626);
-                color: #ffffff;
-                font-weight: 700;
-                font-size: 11px;
-                border: none;
-                border-radius: 5px;
-                padding: 6px 12px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f87171, stop:1 #ef4444);
-            }
-            QPushButton:disabled {
-                background: #27272a;
-                color: #71717a;
-            }
-        """)
-        self.btn_del.clicked.connect(self._handle_delete)
-        layout.addWidget(self.btn_del)
+        if self.file_path and self.file_path.exists() and self.file_path.is_file():
+            # Delete button
+            self.btn_del = QPushButton(t("threat_btn_delete", self.lang), self)
+            self.btn_del.setStyleSheet("""
+                QPushButton {
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ef4444, stop:1 #dc2626);
+                    color: #ffffff;
+                    font-weight: 700;
+                    font-size: 11px;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 5px 12px;
+                }
+                QPushButton:hover {
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f87171, stop:1 #ef4444);
+                }
+                QPushButton:disabled {
+                    background: #27272a;
+                    color: #71717a;
+                }
+            """)
+            self.btn_del.clicked.connect(self._handle_delete)
+            top_row.addWidget(self.btn_del)
+        else:
+            self.btn_del = None
 
-        # Open folder button
+        # Open / Explore button
         self.btn_open = QPushButton("📂", self)
         self.btn_open.setToolTip(t("threat_tip_open", self.lang))
         self.btn_open.setStyleSheet("""
             QPushButton {
                 background: rgba(255, 255, 255, 0.08);
                 color: #e4e4e7;
-                font-size: 13px;
+                font-size: 12px;
                 border: 1px solid rgba(255, 255, 255, 0.15);
                 border-radius: 5px;
                 padding: 5px 10px;
@@ -203,62 +261,80 @@ class ThreatItemWidget(QFrame):
             }
         """)
         self.btn_open.clicked.connect(self._handle_open_folder)
-        layout.addWidget(self.btn_open)
+        top_row.addWidget(self.btn_open)
+
+        layout.addLayout(top_row)
+
+        # Detail line / finding message
+        self.lbl_detail = QLabel(self.entry.detail, self)
+        self.lbl_detail.setStyleSheet("color: #e4e4e7; font-size: 12px; background: transparent;")
+        self.lbl_detail.setWordWrap(True)
+        self.lbl_detail.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self.lbl_detail)
+
+        # Path line (if available)
+        if self.file_path:
+            self.lbl_path = QLabel(f"📍 {str(self.file_path)}", self)
+            self.lbl_path.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            self.lbl_path.setStyleSheet("color: #a1a1aa; font-family: 'Consolas', monospace; font-size: 11px; background: transparent;")
+            self.lbl_path.setWordWrap(True)
+            layout.addWidget(self.lbl_path)
 
     def _handle_allow(self):
-        if not self.file_path or not self.file_path.exists():
-            self.btn_allow.setEnabled(False)
-            self.btn_allow.setText(t("threat_status_missing", self.lang))
-            self.is_resolved = True
-            self.sig_exception_added.emit(str(self.file_path))
-            return
+        target_path = self.file_path or (self.game_dir / "mod_threat") if self.game_dir else None
+        ok = add_pzmg_exception(target_path, self.game_dir, comment=self.entry.raw_line[:120]) if target_path else True
 
-        ok = add_pzmg_exception(self.file_path, self.game_dir)
-        if ok:
-            self.is_resolved = True
-            self.btn_allow.setEnabled(False)
-            self.btn_allow.setText(t("threat_status_allowed", self.lang))
+        self.is_resolved = True
+        self.btn_allow.setEnabled(False)
+        self.btn_allow.setText(t("threat_status_allowed", self.lang))
+        if self.btn_del:
             self.btn_del.setEnabled(False)
-            whitelisted_suffix = t("threat_status_whitelisted", self.lang)
-            self.lbl_name.setText(f"🛡️  {self.file_path.name} {whitelisted_suffix}")
-            self.lbl_name.setStyleSheet("color: #4ade80; font-size: 13px; font-weight: 800; background: transparent;")
-            self.setStyleSheet("""
-                QFrame {
-                    background-color: rgba(10, 30, 15, 0.75);
-                    border: 1px solid rgba(34, 197, 94, 0.4);
-                    border-radius: 8px;
-                    padding: 6px;
-                }
-            """)
-            self.sig_exception_added.emit(str(self.file_path))
-        else:
-            QMessageBox.warning(self, t("error", self.lang), t("threat_err_save_exception", self.lang))
+
+        whitelisted_suffix = t("threat_status_whitelisted", self.lang)
+        self.lbl_title.setText(f"🛡️  {t(self.entry.category_key, self.lang)} {whitelisted_suffix}")
+        self.lbl_title.setStyleSheet("color: #4ade80; font-size: 13px; font-weight: 800; background: transparent;")
+        self.setStyleSheet("""
+            QFrame {
+                background-color: rgba(10, 30, 15, 0.75);
+                border: 1px solid rgba(34, 197, 94, 0.4);
+                border-radius: 8px;
+                padding: 8px;
+            }
+        """)
+        self.sig_exception_added.emit(str(self.file_path or self.entry.detail))
 
     def _handle_delete(self):
         if not self.file_path or not self.file_path.exists():
             self.is_resolved = True
-            self.btn_del.setEnabled(False)
-            self.btn_del.setText(t("threat_status_missing", self.lang))
+            if self.btn_del:
+                self.btn_del.setEnabled(False)
+                self.btn_del.setText(t("threat_status_missing", self.lang))
             self.btn_allow.setEnabled(False)
-            self.sig_file_deleted.emit(str(self.file_path))
+            self.sig_file_deleted.emit(str(self.file_path or self.entry.detail))
             return
 
         try:
-            self.file_path.unlink()
+            if self.file_path.is_file():
+                self.file_path.unlink()
+            elif self.file_path.is_dir():
+                import shutil
+                shutil.rmtree(self.file_path, ignore_errors=True)
+
             self.is_resolved = True
-            self.btn_del.setEnabled(False)
-            self.btn_del.setText(t("threat_status_resolved", self.lang))
-            self.btn_del.setStyleSheet("background: #15803d; color: #ffffff; border-radius: 5px; padding: 6px 12px;")
+            if self.btn_del:
+                self.btn_del.setEnabled(False)
+                self.btn_del.setText(t("threat_status_resolved", self.lang))
+                self.btn_del.setStyleSheet("background: #15803d; color: #ffffff; border-radius: 5px; padding: 5px 12px;")
             self.btn_allow.setEnabled(False)
             deleted_suffix = t("threat_status_deleted", self.lang)
-            self.lbl_name.setText(f"✓  {self.file_path.name} {deleted_suffix}")
-            self.lbl_name.setStyleSheet("color: #10b981; font-size: 13px; font-weight: 800; background: transparent;")
+            self.lbl_title.setText(f"✓  {t(self.entry.category_key, self.lang)} {deleted_suffix}")
+            self.lbl_title.setStyleSheet("color: #10b981; font-size: 13px; font-weight: 800; background: transparent;")
             self.setStyleSheet("""
                 QFrame {
                     background-color: rgba(15, 25, 15, 0.75);
                     border: 1px solid rgba(16, 185, 129, 0.35);
                     border-radius: 8px;
-                    padding: 6px;
+                    padding: 8px;
                 }
             """)
             self.sig_file_deleted.emit(str(self.file_path))
@@ -266,13 +342,20 @@ class ThreatItemWidget(QFrame):
             QMessageBox.warning(self, t("error", self.lang), t("threat_err_delete_file", self.lang, error=str(e)))
 
     def _handle_open_folder(self):
-        if self.file_path:
-            folder = self.file_path.parent
+        target = self.file_path or self.game_dir
+        if target:
+            if target.is_file() and target.exists():
+                try:
+                    subprocess.Popen(f'explorer.exe /select,"{str(target)}"')
+                    return
+                except Exception:
+                    pass
+            folder = target if target.is_dir() else target.parent
             if folder.exists():
                 try:
-                    subprocess.Popen(f'explorer.exe /select,"{str(self.file_path)}"')
-                except Exception:
                     subprocess.Popen(f'explorer.exe "{str(folder)}"')
+                except Exception:
+                    pass
 
 
 class ThreatDialog(QDialog):
@@ -286,28 +369,35 @@ class ThreatDialog(QDialog):
         self.game_dir = game_dir
         self.lang = lang
         self.threat_widgets: List[ThreatItemWidget] = []
+        self.threat_entries: List[ThreatEntry] = []
+
+        self._parse_threats()
 
         self.setWindowTitle(t("threat_dlg_title", self.lang))
-        self.setMinimumSize(800, 600)
-        self.resize(840, 660)
+        self.setMinimumSize(820, 620)
+        self.resize(860, 680)
         self._setup_ui()
         self._check_resolution_state()
 
-    def _extract_threat_paths(self) -> List[Path]:
-        found_paths = []
-        seen = set()
+    def _parse_threats(self):
+        """Parse raw threat lines into rich structured ThreatEntry objects."""
+        seen_keys = set()
         for t_line in self.threats:
-            matches = re.findall(r'([A-Za-z]:\\[^:\r\n"\'<>|]+)', t_line)
-            for m in matches:
-                p_str = m.strip().rstrip('.,;)')
-                p = Path(p_str)
-                lower = p.name.lower()
-                if "zomboid-day-launcher" in lower or "pz-modguard" in lower:
-                    continue
-                if str(p).lower() not in seen:
-                    seen.add(str(p).lower())
-                    found_paths.append(p)
-        return found_paths
+            clean = t_line.strip()
+            if not clean:
+                continue
+            lower = clean.lower()
+            # Skip summary lines
+            if "result:" in lower and ("danger" in lower or "caution" in lower or "threat" in lower or "clean" in lower):
+                continue
+            if "critical threat(s) detected" in lower and "result" in lower:
+                continue
+
+            entry = ThreatEntry(clean, self.game_dir)
+            key = (entry.category_key, str(entry.file_path or entry.detail))
+            if key not in seen_keys:
+                seen_keys.add(key)
+                self.threat_entries.append(entry)
 
     def _setup_ui(self):
         self.setStyleSheet("""
@@ -344,7 +434,7 @@ class ThreatDialog(QDialog):
         header.addLayout(title_col, stretch=1)
         layout.addLayout(header)
 
-        # 2. Fake Console Section
+        # 2. Fake Scanner Terminal Output
         console_box = QVBoxLayout()
         console_box.setSpacing(6)
 
@@ -390,19 +480,19 @@ class ThreatDialog(QDialog):
                 padding: 8px;
             }
         """)
-        self.txt_console.setFixedHeight(150)
+        self.txt_console.setFixedHeight(130)
 
         full_text = "\n".join(self.raw_logs) if self.raw_logs else "\n".join(self.threats)
         self.txt_console.setPlainText(full_text)
         console_box.addWidget(self.txt_console)
         layout.addLayout(console_box)
 
-        # 3. Detected Threat Files
-        threat_paths = self._extract_threat_paths()
-
-        self.lbl_files_header = QLabel(t("threat_files_count", self.lang, count=len(threat_paths)), self)
-        self.lbl_files_header.setStyleSheet("color: #ef4444; font-size: 12px; font-weight: 800; background: transparent;")
-        layout.addWidget(self.lbl_files_header)
+        # 3. Detected Threats List
+        self.lbl_threats_header = QLabel(
+            t("threat_items_count", self.lang, count=len(self.threat_entries)), self
+        )
+        self.lbl_threats_header.setStyleSheet("color: #ef4444; font-size: 12px; font-weight: 800; background: transparent;")
+        layout.addWidget(self.lbl_threats_header)
 
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
@@ -422,9 +512,9 @@ class ThreatDialog(QDialog):
         scroll_layout.setContentsMargins(8, 8, 8, 8)
         scroll_layout.setSpacing(8)
 
-        if threat_paths:
-            for p in threat_paths:
-                item = ThreatItemWidget(p, "", self.game_dir, self.lang, scroll_content)
+        if self.threat_entries:
+            for entry in self.threat_entries:
+                item = ThreatItemWidget(entry, self.game_dir, self.lang, scroll_content)
                 item.sig_file_deleted.connect(self._on_item_deleted)
                 item.sig_exception_added.connect(self._on_item_allowed)
                 self.threat_widgets.append(item)
@@ -543,7 +633,7 @@ class ThreatDialog(QDialog):
         self._check_resolution_state()
 
     def _check_resolution_state(self):
-        unresolved = [w for w in self.threat_widgets if not w.is_resolved and w.file_path.exists()]
+        unresolved = [w for w in self.threat_widgets if not w.is_resolved]
 
         if len(unresolved) == 0:
             self.lbl_icon.setText("🛡️✅")

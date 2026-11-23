@@ -388,7 +388,7 @@ class MainWindow(QMainWindow):
             raw_lines = self.tab_console.terminal.toPlainText().splitlines()[-40:] if hasattr(self.tab_console, "terminal") else threats
             dlg = ThreatDialog(raw_logs=raw_lines, threats=threats, game_dir=Path(self.config.game_dir), lang=lang, parent=self)
             dlg.sig_rescan_requested.connect(lambda: self._handle_start(is_debug))
-            dlg.sig_launch_approved.connect(lambda: self._do_launch_game(is_debug))
+            dlg.sig_launch_approved.connect(lambda: self._on_threat_dialog_approved(is_debug))
             dlg.exec()
             return
 
@@ -409,9 +409,18 @@ class MainWindow(QMainWindow):
                 except Exception:
                     pass
         self.config.set("modguard_last_engine_mtime", engine_mtime)
+        self.config.save()
 
         self.tab_home.set_launch_spinner_text(t("launching_game", lang), "")
         QApplication.processEvents()
+        self._do_launch_game(is_debug)
+
+    def _on_threat_dialog_approved(self, is_debug: bool):
+        current_fp = compute_modguard_fingerprint(self.config)
+        self.config.set("modguard_full_scan_done", True)
+        self.config.set("modguard_last_full_scan_time", time.time())
+        self.config.set("modguard_last_fingerprint", current_fp)
+        self.config.save()
         self._do_launch_game(is_debug)
 
     def _do_launch_game(self, is_debug: bool):

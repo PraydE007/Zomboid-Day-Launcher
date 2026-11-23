@@ -80,7 +80,7 @@ class InstallWorker(QThread):
 
             self.sig_progress.emit(5, "Synchronizing repositories...")
             all_steps = []
-            detected_version = "1.1.1"
+            detected_version = "1.1.2"
 
             # Step 1: Sync all repositories in order
             for i, repo_info in enumerate(enabled_repos, start=1):
@@ -206,7 +206,7 @@ class InstallWorker(QThread):
                 with urllib.request.urlopen(req, timeout=4.0) as resp:
                     rel_data = json.loads(resp.read().decode("utf-8"))
                     rel_tag = str(rel_data.get("tag_name", "")).lstrip("v")
-                    cur_v = "1.1.1"
+                    cur_v = "1.1.2"
                     if rel_tag and rel_tag > cur_v:
                         self.sig_log.emit(f"🚀 Newer launcher release found: v{rel_tag} (current version: v{cur_v})")
                         download_url = None

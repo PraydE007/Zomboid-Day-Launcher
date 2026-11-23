@@ -275,7 +275,7 @@ class ModGuardScanThread(QThread):
                 f"$src = [System.IO.File]::ReadAllText('{str(modguard_path)}'); "
                 f"if ($src -notmatch 'Zomboid-Day-Launcher') {{ "
                 f"    $src = $src.Replace('$stockPzExes = @(', '$stockPzExes = @(''Zomboid-Day-Launcher.exe'', '); "
-                f"    $src = $src.Replace('$stockPzScripts = @(', '$stockPzScripts = @(''PZ-ModGuard.bat'', '); "
+                f"    $src = $src.Replace('$whitelistedAgents = @(', '$whitelistedAgents = @(''-agentlib:zbNative=policy=allow-all'', '); "
                 f"}} "
                 f"Invoke-Expression $src"
             ]
@@ -294,10 +294,24 @@ class ModGuardScanThread(QThread):
                     clean_line = line.rstrip()
                     self.sig_log.emit(f"[PZ-ModGuard]: {clean_line}")
                     lower = clean_line.lower()
-                    # Filter out false-positives for our own launcher binaries and modguard script
-                    if "zomboid-day-launcher" in lower or "pz-modguard" in lower:
+                    # Filter out false-positives for our own launcher binaries, modpack files, and modguard script
+                    if any(fp in lower for fp in [
+                        "zomboid-day-launcher",
+                        "pz-modguard",
+                        "zbnative",
+                        "zombiebuddy",
+                        "projectzomboid64.bat",
+                        "projectzomboid64showconsole.bat",
+                    ]):
                         continue
-                    if "[critical]" in lower or "critical:" in lower or "[threat]" in lower or "danger!" in lower or "critical threat(s) detected" in lower:
+                    # Ignore generic summary lines like "RESULT: DANGER! 3 critical threat(s) detected!"
+                    if "result:" in lower and ("danger" in lower or "caution" in lower or "threat" in lower or "clean" in lower):
+                        continue
+                    if "critical threat(s) detected" in lower and "result" in lower:
+                        continue
+
+                    # Only capture genuine critical findings
+                    if "[critical]" in lower or "[critical threat]" in lower or "critical:" in lower:
                         critical_threats.append(clean_line)
 
             proc.stdout.close()

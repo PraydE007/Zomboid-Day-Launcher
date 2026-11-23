@@ -106,6 +106,7 @@ class ConfigManager:
 
         if base_dir is not None:
             self.base_dir = base_dir
+            self.is_valid_location = True
         elif self.is_valid_location:
             # Launcher is inside game folder: use dedicated zd-launcher subfolder
             self.base_dir = app_dir / LAUNCHER_FOLDER_NAME
@@ -185,7 +186,7 @@ class ConfigManager:
             return defaults
 
     def _save(self, data: Dict[str, Any]):
-        if not self.is_valid_location:
+        if not self.is_valid_location and not self.config_path.exists():
             # Do NOT create zd-launcher or write configs to disk if misplaced
             return
         try:
