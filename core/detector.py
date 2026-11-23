@@ -48,7 +48,7 @@ class SystemDetector:
             "status": "ok" if launcher_beside else "fail",
             "passed": launcher_beside,
             "details": (
-                t("chk_launcher_loc_ok", lang, path=str(app_dir))
+                t("chk_launcher_loc_ok", lang)
                 if launcher_beside else
                 t("chk_launcher_loc_fail", lang, app_dir=str(app_dir))
             )
@@ -63,9 +63,9 @@ class SystemDetector:
             "status": "ok" if game_exe_ok else "fail",
             "passed": game_exe_ok,
             "details": (
-                t("chk_game_exe_found", lang, path=str(game_dir))
+                t("chk_game_exe_found", lang)
                 if game_exe_ok else
-                t("chk_game_exe_missing", lang, path=str(game_dir))
+                t("chk_game_exe_missing", lang)
             )
         })
 

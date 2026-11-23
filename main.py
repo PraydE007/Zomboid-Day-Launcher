@@ -4,6 +4,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFontDatabase
+from PyQt6.QtNetwork import QLocalServer, QLocalSocket
 
 # Ensure root dir is in sys.path
 BASE_DIR = Path(__file__).resolve().parent
@@ -32,6 +33,21 @@ def main():
     app.setApplicationDisplayName("Zomboid Day Launcher")
     app.setOrganizationName("ZomboidDay")
 
+    # Single Instance Guard: If already running, activate the existing instance and exit
+    SINGLE_INSTANCE_SERVER = "ZomboidDayLauncher_SingleInstance"
+    socket = QLocalSocket()
+    socket.connectToServer(SINGLE_INSTANCE_SERVER)
+    if socket.waitForConnected(400):
+        socket.write(b"ACTIVATE\n")
+        socket.waitForBytesWritten(800)
+        socket.disconnectFromServer()
+        sys.exit(0)
+
+    # First instance creates the local IPC server
+    QLocalServer.removeServer(SINGLE_INSTANCE_SERVER)
+    server = QLocalServer()
+    server.listen(SINGLE_INSTANCE_SERVER)
+
     # Set application icon globally for the whole process
     for icon_name in ("assets/icon.ico", "assets/icon.png"):
         p = get_resource_path(icon_name)
@@ -56,7 +72,36 @@ def main():
     window = MainWindow(config)
     window.show()
 
-    sys.exit(app.exec())
+    # Handle activation signal from secondary launch attempts
+    def _activate_window():
+        client = server.nextPendingConnection()
+        if client:
+            def _on_ready():
+                try:
+                    client.readAll()
+                except Exception:
+                    pass
+                window.show()
+                window.setWindowState(window.windowState() & ~Qt.WindowState.WindowMinimized | Qt.WindowState.WindowActive)
+                window.showNormal()
+                window.raise_()
+                window.activateWindow()
+                if sys.platform == "win32":
+                    try:
+                        import ctypes
+                        hwnd = int(window.winId())
+                        ctypes.windll.user32.ShowWindow(hwnd, 9)  # 9 = SW_RESTORE
+                        ctypes.windll.user32.SetForegroundWindow(hwnd)
+                    except Exception:
+                        pass
+            client.readyRead.connect(_on_ready)
+
+    server.newConnection.connect(_activate_window)
+
+    ret = app.exec()
+    server.close()
+    QLocalServer.removeServer(SINGLE_INSTANCE_SERVER)
+    sys.exit(ret)
 
 
 if __name__ == "__main__":

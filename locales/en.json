@@ -17,7 +17,6 @@
   "info": "Information",
   "success": "Success",
   "copied": "Copied",
-
   "subtitle": "SURVIVAL CLIENT & MODPACK • BUILD 42+",
   "checking_version": "Checking version...",
   "btn_install": "INSTALL",
@@ -42,7 +41,6 @@
   "game_failed_to_start": "Failed to start game.",
   "game_launch_err_title": "Game Launch Error",
   "game_launch_err_msg": "Project Zomboid failed to launch or crashed on startup!\n\nError:\n{error_msg}\n\nSee full report in the 'Console' tab.",
-
   "sec_paths": "Paths",
   "sec_repos": "Repositories",
   "sec_launch": "Launch & Optimization",
@@ -68,7 +66,6 @@
   "dialog_pz_folder": "Project Zomboid Folder",
   "dialog_user_folder": "Profile Folder",
   "dialog_hero_image": "Hero Banner Image",
-
   "game_running": "Game is running (PID: {pid})",
   "game_not_running": "Game is not running",
   "autoscroll": "Autoscroll",
@@ -80,7 +77,6 @@
   "save_log_title": "Save Log",
   "log_saved_title": "Saved",
   "log_saved_msg": "Log saved successfully:\n{path}",
-
   "diag_title": "System Diagnostics",
   "diag_header_title": "SYSTEM VERIFICATION & DIAGNOSTICS",
   "diag_score_passed": "Passed",
@@ -91,14 +87,13 @@
   "btn_refresh_diag": "⟳ Refresh",
   "step_reinstalled_success": "Successfully reinstalled!",
   "all_reinstalled_msg": "All components and scripts successfully reinstalled!",
-
   "chk_launcher_loc": "Launcher Directory Placement",
-  "chk_launcher_loc_ok": "Located beside ProjectZomboid64.exe ({path})",
+  "chk_launcher_loc_ok": "Located beside ProjectZomboid64.exe",
   "chk_launcher_loc_warn": "Running from: {app_dir}. Game folder: {game_dir}",
   "chk_launcher_loc_fail": "Invalid location! Running from: {app_dir}. Must be placed directly in the game folder beside ProjectZomboid64.exe.",
   "chk_game_exe": "Game Binary (ProjectZomboid64.exe)",
-  "chk_game_exe_found": "ProjectZomboid64.exe found ({path})",
-  "chk_game_exe_missing": "ProjectZomboid64.exe missing at {path}",
+  "chk_game_exe_found": "ProjectZomboid64.exe found",
+  "chk_game_exe_missing": "ProjectZomboid64.exe not found",
   "chk_jvm_scripts": "Optimized JVM Startup Scripts",
   "chk_jvm_scripts_ok": "ProjectZomboid64.bat & ProjectZomboid64ShowConsole.bat active",
   "chk_jvm_scripts_missing": "Optimized launch scripts missing (needs installation)",
@@ -114,7 +109,6 @@
   "chk_version_match": "Target Version (Launcher vs Repository)",
   "chk_version_synced": "Synced with repository: v{version}",
   "chk_version_mismatch": "Installed: v{installed} • Repository: v{repo}",
-
   "threat_dlg_title": "PZ-ModGuard Security Alert",
   "threat_header_critical": "CRITICAL MOD SECURITY THREAT DETECTED",
   "threat_header_desc": "PZ-ModGuard detected unauthorized native binaries or scripts. Choose an action for each file below.",
@@ -148,7 +142,6 @@
   "threat_err_delete_file": "Could not delete file:\n{error}",
   "threat_abort_msg": "⛔ [CRITICAL SECURITY THREAT]: GAME LAUNCH FORCEFULLY ABORTED!",
   "threat_code_msg": "   Result code: {code}",
-
   "repo_dlg_edit_title": "Repository Settings",
   "repo_dlg_add_title": "Add New Repository",
   "repo_lbl_name": "Component / Repository Name:",
@@ -167,14 +160,12 @@
   "repo_err_name": "Please specify repository name!",
   "repo_err_source": "Please specify Git URL or local folder path!",
   "repo_browse_title": "Select repository folder",
-
   "tray_show": "Show Launcher",
   "tray_start": "Launch Game",
   "tray_debug": "Debug Launch",
   "tray_exit": "Exit",
   "tray_game_started_title": "Game launched",
   "tray_game_started_msg": "{mode} launch complete. Launcher minimized to tray.",
-
   "install_prep": "Preparing...",
   "install_in_progress": "Installation is already running.",
   "step_steam_open": "Opening Steam Workshop mod collection...",
@@ -185,5 +176,17 @@
   "scan_reason_updated": "Game files or mods updated",
   "scan_reason_routine": "Routine mods verification",
   "mode_debug": "Debug",
-  "mode_standard": "Standard"
+  "mode_standard": "Standard",
+  "launch_mode_normal": "Standard Launch",
+  "launch_mode_debug": "Debug Mode",
+  "log_session_header": "Launch session {time} [{mode}]",
+  "log_launch_game": "Launching game: {script} ({mode})",
+  "log_process_started": "Process started (batch PID: {pid})",
+  "log_console_tracking": "Attached to Zomboid console: {path}",
+  "log_launch_failed": "⛔ [GAME LAUNCH FAILED]: {error}",
+  "log_launch_success": "✅ [GAME LAUNCHED SUCCESSFULLY]: PID {pid}",
+  "log_launch_error": "[Game launch error]: {error}",
+  "log_modguard_start": "🛡️ [PZ-ModGuard]: Running mod security check before starting the game...",
+  "log_modguard_done": "🛡️ [PZ-ModGuard]: Mod security scan completed successfully.",
+  "log_modguard_warn": "[PZ-ModGuard warning]: {error}"
 }

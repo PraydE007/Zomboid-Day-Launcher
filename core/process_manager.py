@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Optional, Set, Tuple, List
 from PyQt6.QtCore import QThread, pyqtSignal, QObject
 
+from core.i18n import t
+
 TH32CS_SNAPPROCESS = 0x00000002
 
 
@@ -401,17 +403,14 @@ class ProcessManager(QObject):
         return False
 
     def launch_game(self, is_debug: bool = False, run_security_scan: bool = False) -> bool:
+        lang = self.config.language
         game_dir = Path(self.config.game_dir)
         if not game_dir.exists():
-            self.sig_log.emit(f"[Помилка]: Папка гри не існує: {game_dir}")
+            self.sig_log.emit(t("log_launch_error", lang, error=t("chk_game_exe_missing", lang)))
             return False
 
-        if is_debug:
-            bat_name = "ProjectZomboid64ShowConsole.bat"
-            mode_name = "Дебаг запуск (-debug)"
-        else:
-            bat_name = "ProjectZomboid64.bat"
-            mode_name = "Стандартний запуск"
+        bat_name = "ProjectZomboid64ShowConsole.bat" if is_debug else "ProjectZomboid64.bat"
+        mode_name = t("launch_mode_debug", lang) if is_debug else t("launch_mode_normal", lang)
 
         data_dir = Path(self.config.base_dir)
         bat_path = data_dir / bat_name
@@ -422,13 +421,13 @@ class ProcessManager(QObject):
                 if exe_path.exists():
                     bat_path = exe_path
                 else:
-                    self.sig_log.emit(f"[Помилка]: Не знайдено {bat_name} у {data_dir} або {game_dir}")
+                    self.sig_log.emit(t("log_launch_error", lang, error=f"{bat_name} not found"))
                     return False
 
         if run_security_scan:
             modguard_path = game_dir / "PZ-ModGuard.bat"
             if modguard_path.exists():
-                self.sig_log.emit("🛡️ [PZ-ModGuard]: Запуск перевірки безпеки модів перед стартом гри...")
+                self.sig_log.emit(t("log_modguard_start", lang))
                 try:
                     proc = subprocess.Popen(
                         ["cmd.exe", "/c", str(modguard_path)],
@@ -443,9 +442,9 @@ class ProcessManager(QObject):
                             self.sig_log.emit(f"[PZ-ModGuard]: {line.rstrip()}")
                     proc.stdout.close()
                     proc.wait()
-                    self.sig_log.emit("🛡️ [PZ-ModGuard]: Перевірку безпеки модів успішно завершено.")
+                    self.sig_log.emit(t("log_modguard_done", lang))
                 except Exception as e:
-                    self.sig_log.emit(f"[PZ-ModGuard попередження]: {e}")
+                    self.sig_log.emit(t("log_modguard_warn", lang, error=str(e)))
 
         # Stop and wait any previous watchers first to release file handles
         if self.watcher:
@@ -466,7 +465,7 @@ class ProcessManager(QObject):
                 pass
             self.batch_proc = None
 
-        session_header = f"\n=== Сесія запуску {time.strftime('%Y-%m-%d %H:%M:%S')} [{mode_name}] ===\n"
+        session_header = f"\n=== {t('log_session_header', lang, time=time.strftime('%Y-%m-%d %H:%M:%S'), mode=mode_name)} ===\n"
         start_offset = 0
         try:
             self.session_log_path.write_text(session_header, encoding="utf-8")
@@ -506,8 +505,7 @@ class ProcessManager(QObject):
             wrapper_cmd = f'cmd.exe /c "call "{bat_path}" < nul >> "{self.session_log_path}" 2>&1"'
             active_log = self.session_log_path
 
-        self.sig_log.emit(f"Запуск гри: {bat_path} ({mode_name})")
-        self.sig_log.emit(f"Папка виконання: {game_dir}")
+        self.sig_log.emit(t("log_launch_game", lang, script=bat_name, mode=mode_name))
 
         try:
             self.batch_proc = subprocess.Popen(
@@ -520,7 +518,7 @@ class ProcessManager(QObject):
             )
             self.current_pid = None
             self._last_status = True
-            self.sig_log.emit(f"Процес запущено (батнік PID: {self.batch_proc.pid})")
+            self.sig_log.emit(t("log_process_started", lang, pid=self.batch_proc.pid))
 
             self.watcher = LogWatcherThread(active_log, start_offset=start_offset)
             self.watcher.sig_lines_batch.connect(self.sig_log_batch.emit)
@@ -535,15 +533,16 @@ class ProcessManager(QObject):
 
             user_console = Path(self.config.user_zomboid_dir) / "console.txt"
             if user_console.exists():
-                self.sig_log.emit(f"Підключено стеження за консоллю Zomboid: {user_console}")
+                self.sig_log.emit(t("log_console_tracking", lang, path=str(user_console)))
 
             return True
 
         except Exception as e:
-            self.sig_log.emit(f"[Помилка запуску гри]: {e}")
+            self.sig_log.emit(t("log_launch_error", lang, error=str(e)))
             return False
 
     def _on_launch_failed(self, error_line: str):
+        lang = self.config.language
         self._last_status = False
         self.current_pid = None
         if self.batch_proc:
@@ -552,12 +551,13 @@ class ProcessManager(QObject):
             except Exception:
                 pass
             self.batch_proc = None
-        self.sig_log.emit(f"⛔ [НЕВДАЛИЙ ЗАПУСК ГРИ]: {error_line}")
+        self.sig_log.emit(t("log_launch_failed", lang, error=error_line))
         self.sig_process_stopped.emit(-1)
         self.sig_game_crashed.emit(error_line)
 
     def _on_launch_succeeded(self, pid: int):
-        self.sig_log.emit(f"✅ [ГРУ УСПІШНО ЗАПУЩЕНО]: PID {pid}")
+        lang = self.config.language
+        self.sig_log.emit(t("log_launch_success", lang, pid=pid))
         self.sig_process_started.emit(pid, "Project Zomboid")
 
     def execute_custom_cmd(self, cmd_text: str):

@@ -17,7 +17,6 @@
   "info": "Інформація",
   "success": "Успіх",
   "copied": "Скопійовано",
-
   "subtitle": "SURVIVAL CLIENT & MODPACK • BUILD 42+",
   "checking_version": "Перевірка версії...",
   "btn_install": "ВСТАНОВИТИ",
@@ -42,7 +41,6 @@
   "game_failed_to_start": "Не вдалося запустити гру.",
   "game_launch_err_title": "Помилка запуску гри",
   "game_launch_err_msg": "Project Zomboid не зміг запуститися або впав під час старту!\n\nПомилка:\n{error_msg}\n\nПовний звіт виведено у вкладці 'Консоль'.",
-
   "sec_paths": "Шляхи",
   "sec_repos": "Репозиторії",
   "sec_launch": "Запуск та оптимізація",
@@ -68,7 +66,6 @@
   "dialog_pz_folder": "Папка Project Zomboid",
   "dialog_user_folder": "Папка профілю",
   "dialog_hero_image": "Картинка банера",
-
   "game_running": "Гра працює (PID: {pid})",
   "game_not_running": "Гра не запущена",
   "autoscroll": "Автоскрол",
@@ -80,7 +77,6 @@
   "save_log_title": "Зберегти лог",
   "log_saved_title": "Збережено",
   "log_saved_msg": "Лог збережено:\n{path}",
-
   "diag_title": "Діагностика системи",
   "diag_header_title": "СИСТЕМНА ДІАГНОСТИКА ТА ПЕРЕВІРКА",
   "diag_score_passed": "Виконано",
@@ -91,14 +87,13 @@
   "btn_refresh_diag": "⟳ Оновити",
   "step_reinstalled_success": "Успішно перевстановлено!",
   "all_reinstalled_msg": "Всі компоненти та скрипти успішно перевстановлено!",
-
   "chk_launcher_loc": "Розміщення лаунчера в папці гри",
-  "chk_launcher_loc_ok": "Знаходиться поруч із ProjectZomboid64.exe ({path})",
+  "chk_launcher_loc_ok": "Знаходиться поруч із ProjectZomboid64.exe",
   "chk_launcher_loc_warn": "Запущено з: {app_dir}. Папка гри: {game_dir}",
   "chk_launcher_loc_fail": "Неправильне розміщення! Запущено з: {app_dir}. Має бути безпосередньо в папці гри біля ProjectZomboid64.exe.",
   "chk_game_exe": "Виконуваний файл гри (ProjectZomboid64.exe)",
-  "chk_game_exe_found": "ProjectZomboid64.exe знайдено ({path})",
-  "chk_game_exe_missing": "ProjectZomboid64.exe відсутній у {path}",
+  "chk_game_exe_found": "ProjectZomboid64.exe знайдено",
+  "chk_game_exe_missing": "ProjectZomboid64.exe відсутній",
   "chk_jvm_scripts": "Оптимізовані JVM скрипти запуску",
   "chk_jvm_scripts_ok": "ProjectZomboid64.bat та ProjectZomboid64ShowConsole.bat активні",
   "chk_jvm_scripts_missing": "Оптимізовані скрипти запуску відсутні (потрібне встановлення)",
@@ -114,7 +109,6 @@
   "chk_version_match": "Таргет версія (Лаунчер vs Репозиторій)",
   "chk_version_synced": "Синхронізовано з репозиторієм: v{version}",
   "chk_version_mismatch": "Встановлена: v{installed} • На репозиторії: v{repo}",
-
   "threat_dlg_title": "PZ-ModGuard Попередження безпеки",
   "threat_header_critical": "ВИЯВЛЕНО КРИТИЧНІ ЗАГРОЗИ БЕЗПЕКИ МОДІВ",
   "threat_header_desc": "PZ-ModGuard виявив неавторизовані нативні бінарні файли або скрипти. Оберіть дію для кожного файлу нижче.",
@@ -148,7 +142,6 @@
   "threat_err_delete_file": "Не вдалося видалити файл:\n{error}",
   "threat_abort_msg": "⛔ [КРИТИЧНА ЗАГРОЗА БЕЗПЕКИ]: ЗАПУСК ГРИ ПРИМУСОВО СКАСОВАНО!",
   "threat_code_msg": "   Код результату: {code}",
-
   "repo_dlg_edit_title": "Налаштування репозиторію",
   "repo_dlg_add_title": "Додати новий репозиторій",
   "repo_lbl_name": "Назва компонента / репозиторію:",
@@ -167,14 +160,12 @@
   "repo_err_name": "Вкажіть назву репозиторію!",
   "repo_err_source": "Вкажіть Git URL або локальний шлях!",
   "repo_browse_title": "Виберіть папку репозиторію",
-
   "tray_show": "Показати лаунчер",
   "tray_start": "Запустити гру",
   "tray_debug": "Debug запуск",
   "tray_exit": "Вийти",
   "tray_game_started_title": "Гру запущено",
   "tray_game_started_msg": "{mode} запуск виконано. Лаунчер згорнуто.",
-
   "install_prep": "Підготовка...",
   "install_in_progress": "Встановлення вже виконується.",
   "step_steam_open": "Відкриття збірки модифікацій у Steam Workshop...",
@@ -185,5 +176,17 @@
   "scan_reason_updated": "Виявлено оновлення або зміну файлів чи модів",
   "scan_reason_routine": "Експрес-перевірка встановлених модів",
   "mode_debug": "Debug",
-  "mode_standard": "Стандартний"
+  "mode_standard": "Стандартний",
+  "launch_mode_normal": "Стандартний запуск",
+  "launch_mode_debug": "Режим налагодження",
+  "log_session_header": "Сесія запуску {time} [{mode}]",
+  "log_launch_game": "Запуск гри: {script} ({mode})",
+  "log_process_started": "Процес запущено (батнік PID: {pid})",
+  "log_console_tracking": "Підключено стеження за консоллю Zomboid: {path}",
+  "log_launch_failed": "⛔ [НЕВДАЛИЙ ЗАПУСК ГРИ]: {error}",
+  "log_launch_success": "✅ [ГРУ УСПІШНО ЗАПУЩЕНО]: PID {pid}",
+  "log_launch_error": "[Помилка запуску гри]: {error}",
+  "log_modguard_start": "🛡️ [PZ-ModGuard]: Запуск перевірки безпеки модів перед стартом гри...",
+  "log_modguard_done": "🛡️ [PZ-ModGuard]: Перевірку безпеки модів успішно завершено.",
+  "log_modguard_warn": "[PZ-ModGuard попередження]: {error}"
 }
