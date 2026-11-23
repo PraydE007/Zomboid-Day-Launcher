@@ -103,7 +103,7 @@ class MainWindow(QMainWindow):
         self._log_startup_diagnostics()
 
     def _log_startup_diagnostics(self):
-        diag = self.tab_home.last_diag or self.tab_home.detector.run_diagnostics(self.config.language)
+        diag = self.tab_home.detector.run_diagnostics("en")
         self.tab_console.append_log("══════════════════════════════════════════════════")
         self.tab_console.append_log("   ZOMBOID DAY LAUNCHER — SYSTEM DIAGNOSTICS      ")
         self.tab_console.append_log("══════════════════════════════════════════════════")
@@ -380,8 +380,8 @@ class MainWindow(QMainWindow):
         if (not is_clean) and len(threats) > 0:
             self.tab_home.hide_launch_spinner()
 
-            self.tab_console.append_log(t("threat_abort_msg", lang))
-            self.tab_console.append_log(t("threat_code_msg", lang, code=code))
+            self.tab_console.append_log(t("threat_abort_msg", "en"))
+            self.tab_console.append_log(t("threat_code_msg", "en", code=code))
             for t_item in threats:
                 self.tab_console.append_log(f"   -> {t_item}")
 

@@ -12,7 +12,7 @@ LAUNCHER_FOLDER_NAME = "zd-launcher"
 DEFAULT_REPOSITORIES = [
     {
         "id": "zomboid-day-files",
-        "name": "Zomboid Day Core (Конфіги, Патчі, ZombieBuddy)",
+        "name": "Zomboid Day Core",
         "order": 1,
         "enabled": True,
         "source_type": "local_or_git",
@@ -20,11 +20,11 @@ DEFAULT_REPOSITORIES = [
         "git_url": "https://github.com/PraydE007/Zomboid-Day-Launcher-Files.git",
         "branch": "main",
         "has_manifest": True,
-        "description": "Основний репозиторій із маніфестом, оптимізованими JVM батниками та ZombieBuddy"
+        "description": "Core repository with manifest, JVM scripts, and ZombieBuddy"
     },
     {
         "id": "pz-modguard",
-        "name": "PZ-ModGuard (Сканер безпеки модів)",
+        "name": "PZ-ModGuard",
         "order": 2,
         "enabled": True,
         "source_type": "git",
@@ -32,12 +32,12 @@ DEFAULT_REPOSITORIES = [
         "git_url": "https://github.com/KodeMannn/PZ-ModGuard.git",
         "branch": "main",
         "has_manifest": False,
-        "description": "Автономний сканер байткоду та безпеки Java/бінарних модів для Build 42+",
+        "description": "Standalone bytecode and security scanner for mods",
         "custom_steps": [
             {
                 "order": 1,
                 "type": "copy_file",
-                "name": "Скрипт PZ-ModGuard.bat",
+                "name": "PZ-ModGuard.bat script",
                 "source": "PZ-ModGuard.bat",
                 "destination": "{GAME_DIR}\\PZ-ModGuard.bat",
                 "overwrite": True,

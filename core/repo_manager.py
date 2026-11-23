@@ -27,23 +27,23 @@ class RepoManager:
         local_path = repo_info.get("local_path", "").strip()
 
         if local_path and Path(local_path).exists():
-            self.log(f"Використовується локальна папка для {repo_info.get('name')}: {local_path}")
+            self.log(f"Using local repository for {repo_info.get('name')}")
             return Path(local_path)
 
         git_url = repo_info.get("git_url", "").strip()
         if not git_url:
-            raise ValueError(f"Репозиторій {repo_id} не має ані локального шляху, ані Git URL!")
+            raise ValueError(f"Repository {repo_id} has neither local path nor Git URL!")
 
         target_dir = self.cache_dir / repo_id
         target_dir.mkdir(parents=True, exist_ok=True)
 
         branch = repo_info.get("branch", "main")
-        self.log(f"Синхронізація репозиторію {repo_info.get('name')} ({git_url})...")
+        self.log(f"Synchronizing repository {repo_info.get('name')}...")
 
         if (target_dir / ".git").exists():
             # Git pull
             try:
-                self.log(f"Оновлення {repo_id} через git pull...")
+                self.log(f"Updating {repo_id} via git pull...")
                 proc = subprocess.run(
                     ["git", "pull", "origin", branch],
                     cwd=str(target_dir),
@@ -51,15 +51,15 @@ class RepoManager:
                     text=True,
                     check=True
                 )
-                self.log(f"Git pull успішно: {proc.stdout.strip()}")
+                self.log(f"Git pull successful: {proc.stdout.strip()}")
                 return target_dir
             except Exception as e:
-                self.log(f"Попередження git pull: {e}. Продовжуємо з наявними файлами.")
+                self.log(f"Git pull warning: {e}. Continuing with existing files.")
                 return target_dir
         else:
             # Git clone
             try:
-                self.log(f"Клонування {repo_id} з {git_url} (гілка {branch})...")
+                self.log(f"Cloning {repo_id} (branch {branch})...")
                 # Remove if empty or failed before
                 if target_dir.exists():
                     shutil.rmtree(target_dir, ignore_errors=True)
@@ -71,23 +71,22 @@ class RepoManager:
                     text=True,
                     check=True
                 )
-                self.log(f"Клонування завершено успішно.")
+                self.log("Cloning completed successfully.")
                 return target_dir
             except Exception as e:
-                self.log(f"Помилка git clone: {e}. Спроба завантажити як ZIP архів...")
+                self.log(f"Git clone error: {e}. Attempting download as ZIP archive...")
                 return self._download_github_zip(git_url, branch, target_dir)
 
     def _download_github_zip(self, git_url: str, branch: str, target_dir: Path) -> Path:
         """Fallback to downloading GitHub zip if git command fails."""
-        # Clean url
         clean_url = git_url.removesuffix(".git")
         zip_url = f"{clean_url}/archive/refs/heads/{branch}.zip"
         zip_path = self.cache_dir / f"{target_dir.name}.zip"
 
-        self.log(f"Завантаження архіву {zip_url}...")
+        self.log(f"Downloading repository archive ({branch})...")
         urllib.request.urlretrieve(zip_url, str(zip_path))
 
-        self.log(f"Розпакування архіву {zip_path}...")
+        self.log("Extracting repository archive...")
         extract_tmp = self.cache_dir / f"{target_dir.name}_tmp"
         if extract_tmp.exists():
             shutil.rmtree(extract_tmp, ignore_errors=True)
@@ -107,7 +106,7 @@ class RepoManager:
         if zip_path.exists():
             zip_path.unlink()
 
-        self.log(f"Архів успішно розпаковано до {target_dir}")
+        self.log("Repository archive successfully unpacked.")
         return target_dir
 
     def get_repo_steps(self, repo_info: Dict[str, Any], repo_path: Path) -> List[Dict[str, Any]]:
@@ -118,7 +117,7 @@ class RepoManager:
         """
         manifest_file = repo_path / "launcher-manifest.json"
         if manifest_file.exists():
-            self.log(f"Знайдено маніфест: {manifest_file}")
+            self.log("Found project manifest: launcher-manifest.json")
             parser = ManifestParser(manifest_file, self.context)
             return parser.get_install_steps(repo_path)
 

@@ -27,39 +27,38 @@ class InstallWorker(QThread):
 
     def run(self):
         try:
-            self.sig_log.emit("=== ПОЧАТОК ПРОЦЕСУ ВСТАНОВЛЕННЯ ТА НАЛАШТУВАННЯ ===")
+            self.sig_log.emit("=== STARTING INSTALLATION & CONFIGURATION ===")
             game_dir = Path(self.config.game_dir)
             user_dir = Path(self.config.user_zomboid_dir)
             base_dir = Path(self.config.base_dir)
             cache_dir = base_dir / "cache" / "repos"
 
             # Step 1: Open Steam Workshop Mod collection page
-            lang = self.config.language
             steam_url = "steam://url/CommunityFilePage/3831192498"
             web_url = "https://steamcommunity.com/sharedfiles/filedetails/?id=3831192498"
-            self.sig_progress.emit(2, t("step_steam_open", lang))
-            self.sig_log.emit(f"🌐 [Крок 1] Відкриття сторінки модифікацій у Steam Workshop: {web_url}")
+            self.sig_progress.emit(2, "Opening Steam Workshop...")
+            self.sig_log.emit(f"🌐 [Step 1] Opening Steam Workshop mod collection: {web_url}")
 
             steam_opened = False
             try:
                 os.startfile(steam_url)
                 steam_opened = True
-                self.sig_log.emit("  → Надіслано запит на відкриття сторінки у клієнті Steam.")
+                self.sig_log.emit("  → Requested opening page in Steam client.")
             except Exception as e:
-                self.sig_log.emit(f"  → Steam клієнт не відповів ({e}). Відкриваємо у веб-браузері...")
+                self.sig_log.emit(f"  → Steam client unavailable ({e}). Opening in default browser...")
 
             if not steam_opened:
                 try:
                     import webbrowser
                     webbrowser.open(web_url)
-                    self.sig_log.emit("  → Сторінку відкрито у браузері за замовчуванням.")
+                    self.sig_log.emit("  → Page opened in default browser.")
                 except Exception as ex:
-                    self.sig_log.emit(f"  → Не вдалося відкрити посилання: {ex}")
+                    self.sig_log.emit(f"  → Failed to open link: {ex}")
 
             time.sleep(0.5)
 
             if not game_dir.exists():
-                self.sig_finished.emit(False, f"Папку Project Zomboid не знайдено: {game_dir}")
+                self.sig_finished.emit(False, "Project Zomboid folder not found.")
                 return
 
             context = {
@@ -76,22 +75,22 @@ class InstallWorker(QThread):
             total_repos = len(enabled_repos)
 
             if total_repos == 0:
-                self.sig_finished.emit(False, "Не вибрано жодного активного репозиторію для встановлення!")
+                self.sig_finished.emit(False, "No enabled repositories selected for installation!")
                 return
 
-            self.sig_progress.emit(5, "Синхронізація репозиторіїв...")
+            self.sig_progress.emit(5, "Synchronizing repositories...")
             all_steps = []
             detected_version = "1.1.0"
 
             # Step 1: Sync all repositories in order
             for i, repo_info in enumerate(enabled_repos, start=1):
                 if self._is_cancelled:
-                    self.sig_finished.emit(False, "Операцію скасовано користувачем.")
+                    self.sig_finished.emit(False, "Operation cancelled by user.")
                     return
 
                 repo_name = repo_info.get("name", repo_info.get("id"))
-                self.sig_log.emit(f"[{i}/{total_repos}] Підготовка репозиторію: {repo_name} (Черга #{repo_info.get('order')})")
-                self.sig_progress.emit(int(5 + (i / total_repos) * 35), f"Синхронізація: {repo_name}...")
+                self.sig_log.emit(f"[{i}/{total_repos}] Preparing repository: {repo_name} (Order #{repo_info.get('order')})")
+                self.sig_progress.emit(int(5 + (i / total_repos) * 35), f"Syncing: {repo_name}...")
 
                 repo_path = repo_mgr.sync_repository(repo_info)
 
@@ -102,9 +101,9 @@ class InstallWorker(QThread):
                         parser = ManifestParser(manifest_path, context)
                         detected_version = parser.version
                         self.sig_version.emit(detected_version)
-                        self.sig_log.emit(f"  → Зчитано версію проєкту з маніфесту: v{detected_version}")
+                        self.sig_log.emit(f"  → Manifest project version: v{detected_version}")
                     except Exception as e:
-                        self.sig_log.emit(f"  → Помилка зчитування маніфесту: {e}")
+                        self.sig_log.emit(f"  → Error reading manifest: {e}")
 
                 steps = repo_mgr.get_repo_steps(repo_info, repo_path)
                 all_steps.extend(steps)
@@ -112,31 +111,31 @@ class InstallWorker(QThread):
             # Step 2: Sort all install steps by order
             all_steps.sort(key=lambda s: s.get("order", 999))
             total_steps = len(all_steps)
-            self.sig_log.emit(f"Всього кроків для встановлення: {total_steps}")
+            self.sig_log.emit(f"Total installation steps: {total_steps}")
 
             if total_steps == 0:
-                self.sig_finished.emit(True, "Репозиторії синхронізовано, кроків копіювання немає.")
+                self.sig_finished.emit(True, "Repositories synchronized, no copy steps required.")
                 return
 
             # Step 3: Execute installation steps
             for idx, step in enumerate(all_steps, start=1):
                 if self._is_cancelled:
-                    self.sig_finished.emit(False, "Операцію скасовано користувачем.")
+                    self.sig_finished.emit(False, "Operation cancelled by user.")
                     return
 
-                step_name = step.get("name", f"Крок {idx}")
+                step_name = step.get("name", f"Step {idx}")
                 step_type = step.get("type", "copy_file")
 
                 pct = int(40 + (idx / total_steps) * 55)
-                self.sig_progress.emit(pct, f"Встановлення ({idx}/{total_steps}): {step_name}...")
-                self.sig_log.emit(f"Виконання кроку #{step.get('order')}: {step_name} [{step_type}]")
+                self.sig_progress.emit(pct, f"Installing ({idx}/{total_steps}): {step_name}...")
+                self.sig_log.emit(f"Executing step #{step.get('order')}: {step_name} [{step_type}]")
 
                 if step_type == "open_url":
                     url = step.get("url") or step.get("fallback_url", "")
                     if url:
                         try:
                             os.startfile(url)
-                            self.sig_log.emit(f"  → Відкрито посилання: {url}")
+                            self.sig_log.emit(f"  → Opened URL: {url}")
                         except Exception:
                             try:
                                 import webbrowser
@@ -152,7 +151,7 @@ class InstallWorker(QThread):
 
                 if step_type == "copy_dir_contents":
                     if not source.exists() or not source.is_dir():
-                        self.sig_log.emit(f"  [Помилка] Папку-джерело не знайдено: {source}")
+                        self.sig_log.emit(f"  [Error] Source folder not found: {source.name}")
                         continue
 
                     destination.mkdir(parents=True, exist_ok=True)
@@ -162,20 +161,20 @@ class InstallWorker(QThread):
                             bak_file = target_file.with_suffix(target_file.suffix + ".bak")
                             try:
                                 shutil.copy2(target_file, bak_file)
-                                self.sig_log.emit(f"    Резервна копія: {bak_file.name}")
+                                self.sig_log.emit(f"    Backup: {bak_file.name}")
                             except Exception:
                                 pass
 
                         if item.is_dir():
                             shutil.copytree(item, target_file, dirs_exist_ok=True)
-                            self.sig_log.emit(f"    Скопійовано папку: {item.name} -> {target_file}")
+                            self.sig_log.emit(f"    Copied directory: {item.name}")
                         else:
                             shutil.copy2(item, target_file)
-                            self.sig_log.emit(f"    Встановлено файл: {item.name}")
+                            self.sig_log.emit(f"    Installed file: {item.name}")
 
                 elif step_type == "copy_file":
                     if not source.exists():
-                        self.sig_log.emit(f"  [Помилка] Файл не знайдено: {source}")
+                        self.sig_log.emit(f"  [Error] File not found: {source.name}")
                         continue
 
                     destination_path = destination
@@ -187,19 +186,19 @@ class InstallWorker(QThread):
                         bak_file = destination_path.with_suffix(destination_path.suffix + ".bak")
                         try:
                             shutil.copy2(destination_path, bak_file)
-                            self.sig_log.emit(f"    Резервна копія: {bak_file.name}")
+                            self.sig_log.emit(f"    Backup: {bak_file.name}")
                         except Exception:
                             pass
 
                     destination_path.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(source, destination_path)
-                    self.sig_log.emit(f"    Встановлено: {source.name} -> {destination_path}")
+                    self.sig_log.emit(f"    Installed: {source.name}")
 
             # Step 4: Check if launcher executable has a newer release on GitHub
             try:
                 import urllib.request
                 import json
-                self.sig_progress.emit(96, "Перевірка оновлень самого лаунчера...")
+                self.sig_progress.emit(96, "Checking for launcher executable updates...")
                 req = urllib.request.Request(
                     "https://api.github.com/repos/PraydE007/Zomboid-Day-Launcher/releases/latest",
                     headers={"User-Agent": "Zomboid-Day-Launcher"}
@@ -209,14 +208,14 @@ class InstallWorker(QThread):
                     rel_tag = str(rel_data.get("tag_name", "")).lstrip("v")
                     cur_v = "1.1.0"
                     if rel_tag and rel_tag > cur_v:
-                        self.sig_log.emit(f"🚀 Знайдено новіший реліз лаунчера: v{rel_tag} (поточна версія: v{cur_v})")
+                        self.sig_log.emit(f"🚀 Newer launcher release found: v{rel_tag} (current version: v{cur_v})")
                         download_url = None
                         for asset in rel_data.get("assets", []):
                             if asset.get("name") == "Zomboid-Day-Launcher.exe":
                                 download_url = asset.get("browser_download_url")
                                 break
                         if download_url:
-                            self.sig_log.emit("  → Завантаження оновленого виконуваного файлу...")
+                            self.sig_log.emit("  → Downloading updated launcher executable...")
                             app_dir = get_app_dir()
                             cur_exe = app_dir / "Zomboid-Day-Launcher.exe"
                             new_exe = app_dir / "Zomboid-Day-Launcher.exe.new"
@@ -234,23 +233,23 @@ class InstallWorker(QThread):
                                     except Exception:
                                         pass
                                 new_exe.rename(cur_exe)
-                                self.sig_log.emit(f"  ✅ Лаунчер успішно оновлено до версії v{rel_tag}!")
+                                self.sig_log.emit(f"  ✅ Launcher successfully updated to v{rel_tag}!")
             except Exception as e:
-                self.sig_log.emit(f"  [Попередження перевірки релізу лаунчера]: {e}")
+                self.sig_log.emit(f"  [Launcher release check warning]: {e}")
 
             # Save version and timestamp
             self.config.set("installed_version", detected_version)
             self.config.set("last_sync_time", time.strftime("%Y-%m-%d %H:%M:%S"))
 
-            self.sig_progress.emit(100, "Встановлення завершено успішно!")
-            self.sig_log.emit("=== ВСІ КОМПОНЕНТИ ТА ПАТЧІ ВСТАНОВЛЕНО УСПІШНО! ===")
-            self.sig_finished.emit(True, f"Успішно встановлено Zomboid Day v{detected_version}")
+            self.sig_progress.emit(100, "Installation completed successfully!")
+            self.sig_log.emit("=== ALL COMPONENTS & PATCHES INSTALLED SUCCESSFULLY! ===")
+            self.sig_finished.emit(True, f"Successfully installed Zomboid Day v{detected_version}")
 
         except Exception as e:
             import traceback
             err_details = traceback.format_exc()
-            self.sig_log.emit(f"[Критична помилка встановлення]:\n{err_details}")
-            self.sig_finished.emit(False, f"Помилка встановлення: {str(e)}")
+            self.sig_log.emit(f"[Critical installation error]:\n{err_details}")
+            self.sig_finished.emit(False, f"Installation error: {str(e)}")
 
 
 def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[bool, str]:
@@ -295,7 +294,7 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                 break
 
         if not source_dir:
-            log("Завантаження JVM скриптів з GitHub репозиторію...")
+            log("Downloading JVM scripts from GitHub repository...")
             repo_mgr = RepoManager(cache_dir, context, log_callback=log)
             repo_info = config_manager.get_repo("zomboid-day-files")
             if repo_info:
@@ -305,10 +304,10 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                     if cand.exists() and (cand / "ProjectZomboid64.bat").exists():
                         source_dir = cand
                 except Exception as ex:
-                    log(f"Помилка завантаження репозиторію: {ex}")
+                    log(f"Repository download error: {ex}")
 
         if not source_dir or not source_dir.exists():
-            return False, "Не вдалося знайти або завантажити файли JVM скриптів з репозиторію."
+            return False, "Failed to download JVM scripts from repository."
 
         try:
             copied = []
@@ -322,10 +321,10 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                             pass
                     shutil.copy2(item, target)
                     copied.append(item.name)
-            log(f"Встановлено JVM скрипти у папку лаунчера ({data_dir.name}): {', '.join(copied)}")
-            return True, f"Успішно встановлено у {data_dir.name}: {', '.join(copied)}"
+            log(f"Installed JVM scripts: {', '.join(copied)}")
+            return True, f"Successfully installed: {', '.join(copied)}"
         except Exception as e:
-            return False, f"Помилка копіювання: {e}"
+            return False, f"Copy error: {e}"
 
     # 2. ZombieBuddy & zbNative DLL
     elif step_id in ("zombie_buddy", "step_zombie_buddy"):
@@ -342,7 +341,7 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                 break
 
         if not source_dir:
-            log("Завантаження ZombieBuddy з GitHub репозиторію...")
+            log("Downloading ZombieBuddy from GitHub repository...")
             repo_mgr = RepoManager(cache_dir, context, log_callback=log)
             repo_info = config_manager.get_repo("zomboid-day-files")
             if repo_info:
@@ -352,10 +351,10 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                     if cand.exists() and (cand / "ZombieBuddy.jar").exists():
                         source_dir = cand
                 except Exception as ex:
-                    log(f"Помилка завантаження репозиторію: {ex}")
+                    log(f"Repository download error: {ex}")
 
         if not source_dir or not source_dir.exists():
-            return False, "Не вдалося знайти або завантажити ZombieBuddy з репозиторію."
+            return False, "Failed to download ZombieBuddy from repository."
 
         try:
             copied = []
@@ -369,10 +368,10 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                             pass
                     shutil.copy2(item, target)
                     copied.append(item.name)
-            log(f"Встановлено ZombieBuddy: {', '.join(copied)}")
-            return True, f"Успішно встановлено: {', '.join(copied)}"
+            log(f"Installed ZombieBuddy: {', '.join(copied)}")
+            return True, f"Successfully installed: {', '.join(copied)}"
         except Exception as e:
-            return False, f"Помилка копіювання: {e}"
+            return False, f"Copy error: {e}"
 
     # 3. PZ-ModGuard Security Scanner
     elif step_id in ("modguard", "step_modguard"):
@@ -389,7 +388,7 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                 break
 
         if not source_bat:
-            log("Завантаження PZ-ModGuard з GitHub репозиторію...")
+            log("Downloading PZ-ModGuard from GitHub repository...")
             repo_mgr = RepoManager(cache_dir, context, log_callback=log)
             modguard_repo = config_manager.get_repo("pz-modguard")
             if modguard_repo:
@@ -398,18 +397,18 @@ def reinstall_step(step_id: str, config_manager, log_callback=None) -> Tuple[boo
                     if (repo_path / "PZ-ModGuard.bat").exists():
                         source_bat = repo_path / "PZ-ModGuard.bat"
                 except Exception as ex:
-                    log(f"Помилка завантаження PZ-ModGuard: {ex}")
+                    log(f"PZ-ModGuard download error: {ex}")
 
         if not source_bat or not source_bat.exists():
-            return False, "Не вдалося знайти або завантажити PZ-ModGuard.bat."
+            return False, "Failed to download PZ-ModGuard.bat."
 
         try:
             target = game_dir / "PZ-ModGuard.bat"
             shutil.copy2(source_bat, target)
-            log(f"Встановлено PZ-ModGuard.bat у {target}")
-            return True, "PZ-ModGuard.bat успішно оновлено!"
+            log("Installed PZ-ModGuard.bat")
+            return True, "PZ-ModGuard.bat updated successfully!"
         except Exception as e:
-            return False, f"Помилка копіювання PZ-ModGuard: {e}"
+            return False, f"PZ-ModGuard copy error: {e}"
 
     # 4. Steam Workshop Collection
     elif step_id in ("steam_workshop", "step_steam_workshop"):
